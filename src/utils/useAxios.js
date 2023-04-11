@@ -11,7 +11,13 @@ const useAxios = () => {
     useContext(AuthContext);
 
   const axiosInstance = getAxiosInstance(authTokens);
-  addRequestInterceptor(axiosInstance, authTokens, setUser, setAuthTokens);
+  addRequestInterceptor(
+    axiosInstance,
+    authTokens,
+    setUser,
+    setAuthTokens,
+    logoutUser
+  );
   addResponseInterceptor(axiosInstance, logoutUser);
   return axiosInstance;
 };
@@ -29,7 +35,8 @@ const addRequestInterceptor = (
   axiosInstance,
   authTokens,
   setUser,
-  setAuthTokens
+  setAuthTokens,
+  logoutUser
 ) => {
   axiosInstance.interceptors.request.use((request) => {
     const user = jwt_decode(authTokens?.accessToken);
@@ -54,7 +61,14 @@ const addRequestInterceptor = (
         return request;
       })
       .catch((error) => {
-        throw new Error("An error occurred on refresh token attempt", error);
+        console.error("An error occurred on refresh token attempt", error);
+        if (
+          error?.response?.status === 403 ||
+          error?.response?.status === 401
+        ) {
+          console.error("403 or 401 response received");
+          logoutUser();
+        }
       });
   });
 };
