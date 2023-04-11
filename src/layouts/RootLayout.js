@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import Breadcrumbs from "../components/Breadcrumbs";
+import Header from "../components/Header";
 
 export default function RootLayout() {
   return (
@@ -8,13 +8,11 @@ export default function RootLayout() {
         <nav>
           <h1>MTG Wallet</h1>
           <NavLink to="/">Home</NavLink>
-          <NavLink to="accounts">Accounts</NavLink>
           <NavLink to="careers">Careers</NavLink>
         </nav>
-        <p>Breadcrumbs</p>
-        <Breadcrumbs></Breadcrumbs>
-        <p>----</p>
       </header>
+      <p>AuthHeader:</p>
+      <Header></Header>
       <main>
         <Outlet />
       </main>
