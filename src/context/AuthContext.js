@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useMemo } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       ? jwt_decode(localStorage.getItem(authTokensLocalStorageKey))
       : null
   );
-  let [loading, setLoading] = useState(true);
+  let [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   const loginUser = async (e) => {
@@ -53,25 +53,29 @@ export const AuthProvider = ({ children }) => {
     navigate("/login", { replace: true });
   };
 
-  let contextData = {
-    user: user,
-    authTokens: authTokens,
-    setAuthTokens: setAuthTokens,
-    setUser: setUser,
-    loginUser: loginUser,
-    logoutUser: logoutUser,
-  };
+  const contextData = useMemo(
+    () => ({
+      user: user,
+      authTokens: authTokens,
+      setAuthTokens: setAuthTokens,
+      setUser: setUser,
+      loginUser: loginUser,
+      logoutUser: logoutUser,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, authTokens]
+  );
 
   useEffect(() => {
     if (authTokens) {
       setUser(jwt_decode(authTokens.accessToken));
     }
-    setLoading(false);
-  }, [authTokens, loading]);
+    setIsLoading(false);
+  }, [authTokens, isLoading]);
 
   return (
     <AuthContext.Provider value={contextData}>
-      {loading ? null : children}
+      {isLoading ? null : children}
     </AuthContext.Provider>
   );
 };
