@@ -41,35 +41,49 @@ const addRequestInterceptor = (
   axiosInstance.interceptors.request.use((request) => {
     const user = jwt_decode(authTokens?.accessToken);
     const isExpired = dayjs.unix(user?.exp).diff(dayjs()) < 1;
+
     if (!isExpired) {
       return request;
     }
-    axios
-      .get(`${baseURL}${process.env.REACT_APP_REFRESH_TOKEN_URL}`, {
-        headers: {
-          Authorization: `Bearer ${authTokens?.refreshToken}`,
-        },
-      })
-      .then((refreshTokenResponse) => {
-        localStorage.setItem(
-          process.env.REACT_APP_AUTH_TOKENS_LOCAL_STORAGE_KEY,
-          JSON.stringify(refreshTokenResponse?.data)
-        );
-        setAuthTokens(refreshTokenResponse?.data);
-        setUser(jwt_decode(refreshTokenResponse?.data?.accessToken));
-        request.headers.Authorization = `Bearer ${refreshTokenResponse?.data?.accessToken}`;
-        return request;
-      })
-      .catch((error) => {
-        console.error("An error occurred on refresh token attempt", error);
-        if (
-          error?.response?.status === 403 ||
-          error?.response?.status === 401
-        ) {
-          console.error("403 or 401 response received");
-          logoutUser();
-        }
-      });
+
+    if (!request.headers) {
+      request.headers = {};
+    }
+
+    // Create a promise to handle the asynchronous refresh token logic
+    return new Promise((resolve, reject) => {
+      axios
+        .post(
+          `${baseURL}${process.env.REACT_APP_REFRESH_TOKEN_URL}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${authTokens?.refreshToken}`,
+            },
+          }
+        )
+        .then((refreshTokenResponse) => {
+          localStorage.setItem(
+            process.env.REACT_APP_AUTH_TOKENS_LOCAL_STORAGE_KEY,
+            JSON.stringify(refreshTokenResponse?.data)
+          );
+          setAuthTokens(refreshTokenResponse?.data);
+          setUser(jwt_decode(refreshTokenResponse?.data?.accessToken));
+          request.headers.Authorization = `Bearer ${refreshTokenResponse?.data?.accessToken}`;
+          resolve(request);
+        })
+        .catch((error) => {
+          console.error("An error occurred on refresh token attempt", error);
+          if (
+            error?.response?.status === 403 ||
+            error?.response?.status === 401
+          ) {
+            console.error("403 or 401 response received");
+            logoutUser();
+          }
+          reject(error);
+        });
+    });
   });
 };
 

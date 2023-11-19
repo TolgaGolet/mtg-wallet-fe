@@ -9,7 +9,8 @@ const HomePage = () => {
     callApi.get("/api/test/get-message").then((response) => {
       setMessage(response.data);
     });
-  }, [callApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>

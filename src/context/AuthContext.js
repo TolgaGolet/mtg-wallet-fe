@@ -23,13 +23,13 @@ export const AuthProvider = ({ children }) => {
   const loginUser = async (e) => {
     e.preventDefault();
     let response = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}/api/login`,
+      `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`,
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
         },
-        body: new URLSearchParams({
+        body: JSON.stringify({
           username: e?.target?.username?.value,
           password: e?.target?.password?.value,
         }),
@@ -47,6 +47,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logoutUser = () => {
+    fetch(
+      `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGOUT_URL}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authTokens?.accessToken}`,
+        },
+      }
+    );
     setAuthTokens(null);
     setUser(null);
     localStorage.removeItem(authTokensLocalStorageKey);
