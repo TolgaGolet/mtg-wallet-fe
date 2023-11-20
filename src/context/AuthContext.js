@@ -35,12 +35,14 @@ export const AuthProvider = ({ children }) => {
         }),
       }
     );
-    let data = await response?.json();
     if (response?.status === 200) {
+      let data = await response?.json();
       setAuthTokens(data);
       setUser(jwt_decode(data?.accessToken));
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
+    } else if (response?.status === 401) {
+      alert("Username or password is wrong!");
     } else {
       alert("Something went wrong!");
     }

@@ -14,7 +14,7 @@ const Header = () => {
       ) : (
         <Link to="/login">Login</Link>
       )}
-      {user && <p>Hello {user.username}.</p>}
+      {user && <p>Hello {user.sub}.</p>}
     </div>
   );
 };
