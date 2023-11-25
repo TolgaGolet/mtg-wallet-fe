@@ -12,6 +12,7 @@ import "@mantine/carousel/styles.css";
 import "@mantine/spotlight/styles.css";
 import "@mantine/nprogress/styles.css";
 import { MantineProvider, createTheme } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 
 const theme = createTheme({
   /** Put your mantine theme override here */
@@ -20,6 +21,7 @@ const theme = createTheme({
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <MantineProvider theme={theme} defaultColorScheme="dark">
+    <Notifications />
     <App />
   </MantineProvider>
 );

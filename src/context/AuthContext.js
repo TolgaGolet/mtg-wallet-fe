@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useMemo } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
+import Notification from "../components/Notification";
 
 const AuthContext = createContext();
 const authTokensLocalStorageKey =
@@ -20,8 +21,7 @@ export const AuthProvider = ({ children }) => {
   let [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const loginUser = async (e) => {
-    e.preventDefault();
+  const loginUser = async (e, setIsLoading) => {
     let response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`,
       {
@@ -30,8 +30,8 @@ export const AuthProvider = ({ children }) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: e?.target?.username?.value,
-          password: e?.target?.password?.value,
+          username: e?.username,
+          password: e?.password,
         }),
       }
     );
@@ -42,10 +42,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
     } else if (response?.status === 401) {
-      alert("Username or password is wrong!");
+      Notification("Username or password is wrong!", "error");
     } else {
-      alert("Something went wrong!");
+      Notification("Something went wrong!", "error");
     }
+    setIsLoading(false);
   };
 
   const logoutUser = () => {
