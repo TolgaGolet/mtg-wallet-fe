@@ -10,13 +10,17 @@ import {
   Group,
   Button,
   FocusTrap,
+  Alert,
 } from "@mantine/core";
 import { useForm, hasLength } from "@mantine/form";
+import { IconX } from "@tabler/icons-react";
 
 const LoginPage = () => {
   let { loginUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUsernameOrPasswordWrong, setIsUsernameOrPasswordWrong] =
+    useState(false);
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
@@ -49,11 +53,22 @@ const LoginPage = () => {
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+        {isUsernameOrPasswordWrong ? (
+          <Alert
+            variant="light"
+            color="red"
+            title="Error"
+            icon={<IconX />}
+            visible={false}
+          >
+            Username or password is wrong!
+          </Alert>
+        ) : null}
         <FocusTrap active={true}>
           <form
             onSubmit={form.onSubmit((e) => {
               setIsLoading(true);
-              loginUser(e, setIsLoading);
+              loginUser(e, setIsLoading, setIsUsernameOrPasswordWrong);
             })}
           >
             <TextInput

@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   let [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const loginUser = async (e, setIsLoading) => {
+  const loginUser = async (e, setIsLoading, setIsUsernameOrPasswordWrong) => {
     let response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`,
       {
@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }) => {
       navigate("/", { replace: true });
     } else if (response?.status === 401) {
       Notification("Username or password is wrong!", "error");
+      setIsUsernameOrPasswordWrong(true);
     } else {
       Notification("Something went wrong!", "error");
     }
