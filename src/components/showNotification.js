@@ -30,7 +30,7 @@ const showNotification = (message, type) => {
     };
   }
 
-  return <>{notifications.show(notificationConfig)}</>;
+  notifications.show(notificationConfig);
 };
 
 export default showNotification;

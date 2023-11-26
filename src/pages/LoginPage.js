@@ -54,13 +54,7 @@ const LoginPage = () => {
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
         {isUsernameOrPasswordWrong ? (
-          <Alert
-            variant="light"
-            color="red"
-            title="Error"
-            icon={<IconX />}
-            visible={false}
-          >
+          <Alert variant="light" color="red" title="Error" icon={<IconX />}>
             Username or password is wrong!
           </Alert>
         ) : null}
