@@ -21,6 +21,7 @@ import CareerDetails, {
 } from "./pages/careers/CareerDetails";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import SignUp from "./pages/SignUp";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -41,6 +42,7 @@ const router = createBrowserRouter(
         }
       />
       <Route path="login" element={<LoginPage />} />
+      <Route path="register" element={<SignUp />} />
       {/* TODO CHECK Loaders, Route Parameters And ErrorElement Example */}
       <Route
         path="careers"
