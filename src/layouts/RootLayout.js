@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useDisclosure } from "@mantine/hooks";
 import {
   AppShell,
@@ -19,6 +19,7 @@ import AuthContext from "../context/AuthContext";
 import React, { useContext } from "react";
 
 export default function RootLayout() {
+  const navigate = useNavigate();
   let { logoutUser, user } = useContext(AuthContext);
   const [opened, { toggle }] = useDisclosure();
   const { setColorScheme } = useMantineColorScheme();
@@ -49,13 +50,19 @@ export default function RootLayout() {
               <Title order={1} className={classes.title}>
                 MTG Wallet
               </Title>
-              <Group ml="xl" gap={3} visibleFrom="sm">
-                <NavLink to="/" className={classes.control}>
-                  <UnstyledButton>Home</UnstyledButton>
-                </NavLink>
-                <NavLink to="/careers" className={classes.control}>
-                  <UnstyledButton>Careers</UnstyledButton>
-                </NavLink>
+              <Group ml="xl" gap={20} visibleFrom="sm">
+                <UnstyledButton
+                  onClick={() => navigate("/", { replace: false })}
+                  className={classes.control}
+                >
+                  Home
+                </UnstyledButton>
+                <UnstyledButton
+                  onClick={() => navigate("/careers", { replace: false })}
+                  className={classes.control}
+                >
+                  Careers
+                </UnstyledButton>
                 <ActionIcon
                   onClick={() =>
                     setColorScheme(
@@ -99,12 +106,28 @@ export default function RootLayout() {
         </AppShell.Header>
 
         <AppShell.Navbar py="md" px={4}>
-          <NavLink to="/" className={classes.control}>
-            <UnstyledButton onClick={toggle}>Home</UnstyledButton>
-          </NavLink>
-          <NavLink to="/careers" className={classes.control}>
-            <UnstyledButton onClick={toggle}>Careers</UnstyledButton>
-          </NavLink>
+          <UnstyledButton
+            onClick={() => {
+              navigate("/", { replace: false });
+              toggle();
+            }}
+            className={classes.control}
+            mb="md"
+            ml="md"
+          >
+            Home
+          </UnstyledButton>
+          <UnstyledButton
+            onClick={() => {
+              navigate("/careers", { replace: false });
+              toggle();
+            }}
+            className={classes.control}
+            mb="md"
+            ml="md"
+          >
+            Careers
+          </UnstyledButton>
           <Button
             onClick={() =>
               setColorScheme(computedColorScheme === "light" ? "dark" : "light")
@@ -125,7 +148,7 @@ export default function RootLayout() {
               )
             }
             variant="default"
-            mt="md"
+            mt="xs"
           >
             Toggle Dark / Light Mode
           </Button>
