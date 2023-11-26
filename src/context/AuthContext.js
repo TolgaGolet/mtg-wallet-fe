@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, useMemo } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
-import Notification from "../components/Notification";
+import showNotification from "../components/showNotification";
 
 const AuthContext = createContext();
 const authTokensLocalStorageKey =
@@ -42,10 +42,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
     } else if (response?.status === 401) {
-      Notification("Username or password is wrong!", "error");
+      showNotification("Username or password is wrong!", "error");
       setIsUsernameOrPasswordWrong(true);
     } else {
-      Notification("Something went wrong!", "error");
+      showNotification("Something went wrong!", "error");
     }
     setIsLoading(false);
   };
@@ -66,6 +66,40 @@ export const AuthProvider = ({ children }) => {
     navigate("/login", { replace: true });
   };
 
+  const signUpUser = async (e, setIsLoading, setIsUsernameAlreadyTaken) => {
+    let response = await fetch(
+      `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_SIGN_UP_URL}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: e?.username,
+          name: e?.name,
+          surname: e?.surname,
+          password: e?.password,
+        }),
+      }
+    );
+    if (response?.status === 200) {
+      let data = await response?.json();
+      setAuthTokens(data);
+      setUser(jwt_decode(data?.accessToken));
+      localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
+      navigate("/", { replace: true });
+    } else if (response?.status === 409) {
+      showNotification(
+        "Username is already taken. Please choose another username",
+        "error"
+      );
+      setIsUsernameAlreadyTaken(true);
+    } else {
+      showNotification("Something went wrong!", "error");
+    }
+    setIsLoading(false);
+  };
+
   const contextData = useMemo(
     () => ({
       user: user,
@@ -74,6 +108,7 @@ export const AuthProvider = ({ children }) => {
       setUser: setUser,
       loginUser: loginUser,
       logoutUser: logoutUser,
+      signUpUser: signUpUser,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, authTokens]

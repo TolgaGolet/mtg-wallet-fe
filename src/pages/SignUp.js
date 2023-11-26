@@ -15,27 +15,29 @@ import {
 import { useForm, hasLength } from "@mantine/form";
 import { IconX } from "@tabler/icons-react";
 
-const LoginPage = () => {
-  let { loginUser, user } = useContext(AuthContext);
+const SignUp = () => {
+  let { signUpUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isUsernameOrPasswordWrong, setIsUsernameOrPasswordWrong] =
-    useState(false);
+  const [isUsernameAlreadyTaken, setIsUsernameAlreadyTaken] = useState(false);
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
       username: "",
+      name: "",
+      surname: "",
       password: "",
     },
 
     validate: {
-      // username: (val) =>
-      //   val.length > 15 || val.length < 3
-      //     ? "Name must be 3-15 characters long"
-      //     : null,
       username: hasLength(
         { min: 3, max: 15 },
         "Username must be 3-15 characters long"
+      ),
+      name: hasLength({ min: 3, max: 15 }, "Name must be 3-15 characters long"),
+      surname: hasLength(
+        { min: 0, max: 15 },
+        "Surname must be 0-15 characters long"
       ),
       password: hasLength(
         { min: 3, max: 15 },
@@ -53,16 +55,16 @@ const LoginPage = () => {
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        {isUsernameOrPasswordWrong ? (
+        {isUsernameAlreadyTaken ? (
           <Alert variant="light" color="red" title="Error" icon={<IconX />}>
-            Username or password is wrong!
+            Username is already taken. Please choose another username
           </Alert>
         ) : null}
         <FocusTrap active={false}>
           <form
             onSubmit={form.onSubmit((e) => {
               setIsLoading(true);
-              loginUser(e, setIsLoading, setIsUsernameOrPasswordWrong);
+              signUpUser(e, setIsLoading, setIsUsernameAlreadyTaken);
             })}
           >
             <TextInput
@@ -70,6 +72,17 @@ const LoginPage = () => {
               placeholder="Username"
               {...form.getInputProps("username")}
               required
+            />
+            <TextInput
+              label="Name"
+              placeholder="Name"
+              {...form.getInputProps("name")}
+              required
+            />
+            <TextInput
+              label="Surname"
+              placeholder="Surname"
+              {...form.getInputProps("surname")}
             />
             <PasswordInput
               label="Password"
@@ -79,15 +92,15 @@ const LoginPage = () => {
               mt="md"
             />
             <Button type="submit" loading={isLoading} fullWidth mt="xl">
-              Sign in
+              Sign up
             </Button>
             <Group justify="space-between" mt="lg">
               <Anchor
-                onClick={() => navigate("/register", { replace: true })}
+                onClick={() => navigate("/login", { replace: true })}
                 component="button"
                 size="sm"
               >
-                Don't have an account?
+                Already have an account?
               </Anchor>
             </Group>
           </form>
@@ -97,4 +110,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SignUp;
