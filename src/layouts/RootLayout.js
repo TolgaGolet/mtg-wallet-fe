@@ -11,7 +11,6 @@ import {
   ActionIcon,
   Button,
 } from "@mantine/core";
-import Header from "../components/Header";
 import classes from "./RootLayout.module.css";
 import { IconSun, IconMoon, IconLogout } from "@tabler/icons-react";
 import cx from "clsx";
@@ -62,6 +61,12 @@ export default function RootLayout() {
                   className={classes.control}
                 >
                   Careers
+                </UnstyledButton>
+                <UnstyledButton
+                  onClick={() => navigate("/helpContact", { replace: false })}
+                  className={classes.control}
+                >
+                  Help & Contact
                 </UnstyledButton>
                 <ActionIcon
                   onClick={() =>
@@ -128,6 +133,17 @@ export default function RootLayout() {
           >
             Careers
           </UnstyledButton>
+          <UnstyledButton
+            onClick={() => {
+              navigate("/helpContact", { replace: false });
+              toggle();
+            }}
+            className={classes.control}
+            mb="md"
+            ml="md"
+          >
+            Help & Contact
+          </UnstyledButton>
           <Button
             onClick={() =>
               setColorScheme(computedColorScheme === "light" ? "dark" : "light")
@@ -175,7 +191,6 @@ export default function RootLayout() {
         </AppShell.Navbar>
 
         <AppShell.Main>
-          <Header />
           <Outlet />
         </AppShell.Main>
       </AppShell>

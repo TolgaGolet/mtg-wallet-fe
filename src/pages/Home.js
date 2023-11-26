@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import useAxios from "../utils/useAxios";
 
-const HomePage = () => {
+const Home = () => {
   const callApi = useAxios();
   let [message, setMessage] = useState("");
 
@@ -20,4 +20,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage;
+export default Home;

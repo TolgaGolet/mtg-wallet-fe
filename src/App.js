@@ -19,9 +19,10 @@ import Careers, { careersLoader } from "./pages/careers/Careers";
 import CareerDetails, {
   careerDetailsLoader,
 } from "./pages/careers/CareerDetails";
-import HomePage from "./pages/HomePage";
-import LoginPage from "./pages/LoginPage";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import HelpContact from "./pages/HelpContact";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -37,12 +38,13 @@ const router = createBrowserRouter(
         index
         element={
           <PrivateRoute>
-            <HomePage />
+            <Home />
           </PrivateRoute>
         }
       />
-      <Route path="login" element={<LoginPage />} />
+      <Route path="login" element={<Login />} />
       <Route path="register" element={<SignUp />} />
+      <Route path="helpContact" element={<HelpContact />} />
       {/* TODO CHECK Loaders, Route Parameters And ErrorElement Example */}
       <Route
         path="careers"
