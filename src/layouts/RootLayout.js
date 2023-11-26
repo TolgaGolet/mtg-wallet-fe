@@ -25,6 +25,7 @@ export default function RootLayout() {
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
+  const mobileButtonMargin = "lg";
 
   return (
     <div className="root-layout">
@@ -117,8 +118,8 @@ export default function RootLayout() {
               toggle();
             }}
             className={classes.control}
-            mb="md"
-            ml="md"
+            mb={mobileButtonMargin}
+            ml={mobileButtonMargin}
           >
             Home
           </UnstyledButton>
@@ -128,8 +129,8 @@ export default function RootLayout() {
               toggle();
             }}
             className={classes.control}
-            mb="md"
-            ml="md"
+            mb={mobileButtonMargin}
+            ml={mobileButtonMargin}
           >
             Careers
           </UnstyledButton>
@@ -139,8 +140,8 @@ export default function RootLayout() {
               toggle();
             }}
             className={classes.control}
-            mb="md"
-            ml="md"
+            mb={mobileButtonMargin}
+            ml={mobileButtonMargin}
           >
             Help & Contact
           </UnstyledButton>

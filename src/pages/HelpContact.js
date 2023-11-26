@@ -17,12 +17,12 @@ export default function HelpContact() {
 
   return (
     <Container size="sm" className={classes.wrapper}>
-      <Title ta="center" className={classes.title}>
+      <Title ta="center" mb="lg">
         Frequently Asked Questions
       </Title>
 
       <Accordion variant="separated">
-        <Accordion.Item className={classes.item} value="reset-password">
+        <Accordion.Item className={classes.item} value="forgot-password">
           <Accordion.Control>
             I forgot my password. How can I reset it?
           </Accordion.Control>
