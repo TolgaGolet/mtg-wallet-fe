@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, useMemo } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
-import Notification from "../components/Notification";
+import showNotification from "../components/showNotification";
 
 const AuthContext = createContext();
 const authTokensLocalStorageKey =
@@ -42,10 +42,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
     } else if (response?.status === 401) {
-      Notification("Username or password is wrong!", "error");
+      showNotification("Username or password is wrong!", "error");
       setIsUsernameOrPasswordWrong(true);
     } else {
-      Notification("Something went wrong!", "error");
+      showNotification("Something went wrong!", "error");
     }
     setIsLoading(false);
   };

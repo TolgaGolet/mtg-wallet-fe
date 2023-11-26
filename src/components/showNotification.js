@@ -2,7 +2,7 @@ import { notifications } from "@mantine/notifications";
 import { rem } from "@mantine/core";
 import { IconX, IconCheck } from "@tabler/icons-react";
 
-const Notification = (message, type) => {
+const showNotification = (message, type) => {
   const autoCloseDuration = 5000;
 
   let notificationConfig;
@@ -33,4 +33,4 @@ const Notification = (message, type) => {
   return <>{notifications.show(notificationConfig)}</>;
 };
 
-export default Notification;
+export default showNotification;
