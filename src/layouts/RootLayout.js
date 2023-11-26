@@ -11,7 +11,6 @@ import {
   ActionIcon,
   Button,
 } from "@mantine/core";
-import Header from "../components/Header";
 import classes from "./RootLayout.module.css";
 import { IconSun, IconMoon, IconLogout } from "@tabler/icons-react";
 import cx from "clsx";
@@ -175,7 +174,6 @@ export default function RootLayout() {
         </AppShell.Navbar>
 
         <AppShell.Main>
-          <Header />
           <Outlet />
         </AppShell.Main>
       </AppShell>

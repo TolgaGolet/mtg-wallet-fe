@@ -15,7 +15,7 @@ import {
 import { useForm, hasLength } from "@mantine/form";
 import { IconX } from "@tabler/icons-react";
 
-const LoginPage = () => {
+const Login = () => {
   let { loginUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -97,4 +97,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default Login;
