@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
       setUser(jwt_decode(data?.accessToken));
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
+      showNotification("You have been successfully signed in!", "success");
     } else if (response?.status === 401) {
       showNotification("Username or password is wrong!", "error");
       setIsUsernameOrPasswordWrong(true);
@@ -64,6 +65,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem(authTokensLocalStorageKey);
     navigate("/login", { replace: true });
+    showNotification("You have been successfully logged out!", "success");
   };
 
   const signUpUser = async (e, setIsLoading, setIsUsernameAlreadyTaken) => {
@@ -76,6 +78,7 @@ export const AuthProvider = ({ children }) => {
         },
         body: JSON.stringify({
           username: e?.username,
+          email: e?.email,
           name: e?.name,
           surname: e?.surname,
           password: e?.password,
@@ -88,6 +91,7 @@ export const AuthProvider = ({ children }) => {
       setUser(jwt_decode(data?.accessToken));
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
+      showNotification("You have been successfully signed up!", "success");
     } else if (response?.status === 409) {
       showNotification(
         "Username is already taken. Please choose another username",
