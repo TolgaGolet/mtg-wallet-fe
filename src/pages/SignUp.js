@@ -12,7 +12,7 @@ import {
   FocusTrap,
   Alert,
 } from "@mantine/core";
-import { useForm, hasLength } from "@mantine/form";
+import { useForm, hasLength, isEmail } from "@mantine/form";
 import { IconX } from "@tabler/icons-react";
 
 const SignUp = () => {
@@ -34,6 +34,7 @@ const SignUp = () => {
         { min: 3, max: 15 },
         "Username must be 3-15 characters long"
       ),
+      email: isEmail("Invalid email address"),
       name: hasLength({ min: 3, max: 15 }, "Name must be 3-15 characters long"),
       surname: hasLength(
         { min: 0, max: 15 },
@@ -71,6 +72,12 @@ const SignUp = () => {
               label="Username"
               placeholder="Username"
               {...form.getInputProps("username")}
+              required
+            />
+            <TextInput
+              label="Email"
+              placeholder="Email"
+              {...form.getInputProps("email")}
               required
             />
             <TextInput
