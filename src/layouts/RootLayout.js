@@ -62,6 +62,12 @@ export default function RootLayout() {
                 >
                   Careers
                 </UnstyledButton>
+                <UnstyledButton
+                  onClick={() => navigate("/helpContact", { replace: false })}
+                  className={classes.control}
+                >
+                  Help & Contact
+                </UnstyledButton>
                 <ActionIcon
                   onClick={() =>
                     setColorScheme(
@@ -126,6 +132,17 @@ export default function RootLayout() {
             ml="md"
           >
             Careers
+          </UnstyledButton>
+          <UnstyledButton
+            onClick={() => {
+              navigate("/helpContact", { replace: false });
+              toggle();
+            }}
+            className={classes.control}
+            mb="md"
+            ml="md"
+          >
+            Help & Contact
           </UnstyledButton>
           <Button
             onClick={() =>

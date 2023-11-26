@@ -22,6 +22,7 @@ import CareerDetails, {
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import HelpContact from "./pages/HelpContact";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -43,6 +44,7 @@ const router = createBrowserRouter(
       />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<SignUp />} />
+      <Route path="helpContact" element={<HelpContact />} />
       {/* TODO CHECK Loaders, Route Parameters And ErrorElement Example */}
       <Route
         path="careers"
