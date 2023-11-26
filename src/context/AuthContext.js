@@ -45,6 +45,11 @@ export const AuthProvider = ({ children }) => {
     } else if (response?.status === 401) {
       showNotification("Username or password is wrong!", "error");
       setIsUsernameOrPasswordWrong(true);
+    } else if (response?.status === 429) {
+      showNotification(
+        "Too many requests. Try again after a few minutes",
+        "error"
+      );
     } else {
       showNotification("Something went wrong!", "error");
     }
@@ -98,6 +103,11 @@ export const AuthProvider = ({ children }) => {
         "error"
       );
       setIsUsernameAlreadyTaken(true);
+    } else if (response?.status === 429) {
+      showNotification(
+        "Too many requests. Try again after a few minutes",
+        "error"
+      );
     } else {
       showNotification("Something went wrong!", "error");
     }

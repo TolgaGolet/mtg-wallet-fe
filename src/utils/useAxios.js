@@ -3,6 +3,7 @@ import jwt_decode from "jwt-decode";
 import dayjs from "dayjs";
 import { useContext } from "react";
 import AuthContext from "../context/AuthContext";
+import showNotification from "../components/showNotification";
 
 const baseURL = process.env.REACT_APP_API_BASE_URL;
 
@@ -96,6 +97,11 @@ const addResponseInterceptor = (axiosInstance, logoutUser) => {
       if (error?.response?.status === 403 || error?.response?.status === 401) {
         console.error("403 or 401 response received");
         logoutUser();
+      } else if (error?.response?.status === 429) {
+        showNotification(
+          "Too many requests. Try again after a few minutes",
+          "error"
+        );
       }
       return Promise.reject(error);
     }

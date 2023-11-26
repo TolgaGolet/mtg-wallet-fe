@@ -4,10 +4,6 @@
     min-height: rem(650px);
   }
   
-  .title {
-    margin-bottom: calc(var(--mantine-spacing-xl) * 1.5);
-  }
-  
   .item {
     border-radius: var(--mantine-radius-md);
     margin-bottom: var(--mantine-spacing-lg);
