@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useDisclosure } from "@mantine/hooks";
 import {
   AppShell,
@@ -13,10 +13,14 @@ import {
 } from "@mantine/core";
 import Header from "../components/Header";
 import classes from "./RootLayout.module.css";
-import { IconSun, IconMoon } from "@tabler/icons-react";
+import { IconSun, IconMoon, IconLogout } from "@tabler/icons-react";
 import cx from "clsx";
+import AuthContext from "../context/AuthContext";
+import React, { useContext } from "react";
 
 export default function RootLayout() {
+  const navigate = useNavigate();
+  let { logoutUser, user } = useContext(AuthContext);
   const [opened, { toggle }] = useDisclosure();
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme("light", {
@@ -46,13 +50,19 @@ export default function RootLayout() {
               <Title order={1} className={classes.title}>
                 MTG Wallet
               </Title>
-              <Group ml="xl" gap={0} visibleFrom="sm">
-                <NavLink to="/" className={classes.control}>
-                  <UnstyledButton>Home</UnstyledButton>
-                </NavLink>
-                <NavLink to="/careers" className={classes.control}>
-                  <UnstyledButton>Careers</UnstyledButton>
-                </NavLink>
+              <Group ml="xl" gap={20} visibleFrom="sm">
+                <UnstyledButton
+                  onClick={() => navigate("/", { replace: false })}
+                  className={classes.control}
+                >
+                  Home
+                </UnstyledButton>
+                <UnstyledButton
+                  onClick={() => navigate("/careers", { replace: false })}
+                  className={classes.control}
+                >
+                  Careers
+                </UnstyledButton>
                 <ActionIcon
                   onClick={() =>
                     setColorScheme(
@@ -75,18 +85,49 @@ export default function RootLayout() {
                     />
                   )}
                 </ActionIcon>
+                {user ? (
+                  <ActionIcon
+                    onClick={() => {
+                      logoutUser();
+                    }}
+                    variant="default"
+                    size="xl"
+                    aria-label="Logout"
+                  >
+                    <IconLogout
+                      className={cx(classes.icon, classes.light)}
+                      stroke={1.5}
+                    />
+                  </ActionIcon>
+                ) : null}
               </Group>
             </Group>
           </Group>
         </AppShell.Header>
 
         <AppShell.Navbar py="md" px={4}>
-          <NavLink to="/" className={classes.control}>
-            <UnstyledButton onClick={toggle}>Home</UnstyledButton>
-          </NavLink>
-          <NavLink to="/careers" className={classes.control}>
-            <UnstyledButton onClick={toggle}>Careers</UnstyledButton>
-          </NavLink>
+          <UnstyledButton
+            onClick={() => {
+              navigate("/", { replace: false });
+              toggle();
+            }}
+            className={classes.control}
+            mb="md"
+            ml="md"
+          >
+            Home
+          </UnstyledButton>
+          <UnstyledButton
+            onClick={() => {
+              navigate("/careers", { replace: false });
+              toggle();
+            }}
+            className={classes.control}
+            mb="md"
+            ml="md"
+          >
+            Careers
+          </UnstyledButton>
           <Button
             onClick={() =>
               setColorScheme(computedColorScheme === "light" ? "dark" : "light")
@@ -107,10 +148,30 @@ export default function RootLayout() {
               )
             }
             variant="default"
-            mt="md"
+            mt="xs"
           >
             Toggle Dark / Light Mode
           </Button>
+          {user ? (
+            <Button
+              onClick={() => {
+                logoutUser();
+                toggle();
+              }}
+              justify="center"
+              fullWidth
+              leftSection={
+                <IconLogout
+                  className={cx(classes.icon, classes.light)}
+                  stroke={1.5}
+                />
+              }
+              variant="default"
+              mt="md"
+            >
+              Logout
+            </Button>
+          ) : null}
         </AppShell.Navbar>
 
         <AppShell.Main>
