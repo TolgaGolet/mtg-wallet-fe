@@ -19,7 +19,10 @@ const SignUp = () => {
   let { signUpUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isUsernameAlreadyTaken, setIsUsernameAlreadyTaken] = useState(false);
+  const [errorData, setErrorData] = useState({
+    isErrorState: false,
+    message: "",
+  });
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
@@ -56,16 +59,16 @@ const SignUp = () => {
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        {isUsernameAlreadyTaken ? (
+        {errorData.isErrorState ? (
           <Alert variant="light" color="red" title="Error" icon={<IconX />}>
-            Username is already taken. Please choose another username
+            {errorData.message}
           </Alert>
         ) : null}
         <FocusTrap active={false}>
           <form
             onSubmit={form.onSubmit((e) => {
               setIsLoading(true);
-              signUpUser(e, setIsLoading, setIsUsernameAlreadyTaken);
+              signUpUser(e, setIsLoading, setErrorData);
             })}
           >
             <TextInput

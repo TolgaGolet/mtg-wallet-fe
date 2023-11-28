@@ -19,8 +19,10 @@ const Login = () => {
   let { loginUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isUsernameOrPasswordWrong, setIsUsernameOrPasswordWrong] =
-    useState(false);
+  const [errorData, setErrorData] = useState({
+    isErrorState: false,
+    message: "",
+  });
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
@@ -53,16 +55,16 @@ const Login = () => {
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        {isUsernameOrPasswordWrong ? (
+        {errorData.isErrorState ? (
           <Alert variant="light" color="red" title="Error" icon={<IconX />}>
-            Username or password is wrong!
+            {errorData.message}
           </Alert>
         ) : null}
         <FocusTrap active={false}>
           <form
             onSubmit={form.onSubmit((e) => {
               setIsLoading(true);
-              loginUser(e, setIsLoading, setIsUsernameOrPasswordWrong);
+              loginUser(e, setIsLoading, setErrorData);
             })}
           >
             <TextInput

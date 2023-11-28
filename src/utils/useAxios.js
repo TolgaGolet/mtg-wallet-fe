@@ -75,6 +75,11 @@ const addRequestInterceptor = (
         })
         .catch((error) => {
           console.error("An error occurred on refresh token attempt", error);
+          showNotification(
+            "An error occurred on refresh token attempt. " +
+              error?.response?.data,
+            "error"
+          );
           if (
             error?.response?.status === 403 ||
             error?.response?.status === 401
@@ -94,6 +99,7 @@ const addResponseInterceptor = (axiosInstance, logoutUser) => {
       return response;
     },
     (error) => {
+      showNotification(error?.response?.data, "error");
       if (error?.response?.status === 403 || error?.response?.status === 401) {
         console.error("403 or 401 response received");
         logoutUser();
