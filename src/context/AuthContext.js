@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   let [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const loginUser = async (e, setIsLoading, setIsUsernameOrPasswordWrong) => {
+  const loginUser = async (e, setIsLoading, setErrorData) => {
     let response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`,
       {
@@ -41,17 +41,19 @@ export const AuthProvider = ({ children }) => {
       setUser(jwt_decode(data?.accessToken));
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
-      showNotification("You have been successfully signed in!", "success");
+      showNotification("You have been successfully signed in", "success");
     } else if (response?.status === 401) {
-      showNotification("Username or password is wrong!", "error");
-      setIsUsernameOrPasswordWrong(true);
+      let message = await response.text();
+      showNotification(message, "error");
+      setErrorData({ isErrorState: true, message: message });
     } else if (response?.status === 429) {
       showNotification(
         "Too many requests. Try again after a few minutes",
         "error"
       );
     } else {
-      showNotification("Something went wrong!", "error");
+      let message = await response.text();
+      showNotification("Something went wrong! " + message, "error");
     }
     setIsLoading(false);
   };
@@ -73,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     showNotification("You have been successfully logged out!", "success");
   };
 
-  const signUpUser = async (e, setIsLoading, setIsUsernameAlreadyTaken) => {
+  const signUpUser = async (e, setIsLoading, setErrorData) => {
     let response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_SIGN_UP_URL}`,
       {
@@ -96,20 +98,19 @@ export const AuthProvider = ({ children }) => {
       setUser(jwt_decode(data?.accessToken));
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
-      showNotification("You have been successfully signed up!", "success");
+      showNotification("You have been successfully signed up", "success");
     } else if (response?.status === 409) {
-      showNotification(
-        "Username is already taken. Please choose another username",
-        "error"
-      );
-      setIsUsernameAlreadyTaken(true);
+      let message = await response.text();
+      showNotification(message, "error");
+      setErrorData({ isErrorState: true, message: message });
     } else if (response?.status === 429) {
       showNotification(
         "Too many requests. Try again after a few minutes",
         "error"
       );
     } else {
-      showNotification("Something went wrong!", "error");
+      let message = await response.text();
+      showNotification("Something went wrong! " + message, "error");
     }
     setIsLoading(false);
   };
