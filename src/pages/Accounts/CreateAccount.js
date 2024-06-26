@@ -24,9 +24,9 @@ export default function CreateAccount() {
     validateInputOnBlur: true,
     initialValues: {
       name: "",
-      typeKey: "",
+      typeValue: "",
       balance: null,
-      currencyKey: "",
+      currencyValue: "",
     },
 
     validate: {
