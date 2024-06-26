@@ -6,7 +6,7 @@ const Home = () => {
   let [message, setMessage] = useState("");
 
   useEffect(() => {
-    callApi.get("/api/test/get-message").then((response) => {
+    callApi.get("test/get-message").then((response) => {
       setMessage(response.data);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

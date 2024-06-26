@@ -22,6 +22,8 @@ import CareerDetails, {
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import Accounts from "./pages/Accounts/Accounts";
+import CreateAccount from "./pages/Accounts/CreateAccount";
 import HelpContact from "./pages/HelpContact";
 
 const router = createBrowserRouter(
@@ -44,6 +46,22 @@ const router = createBrowserRouter(
       />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<SignUp />} />
+      <Route
+        path="accounts"
+        element={
+          <PrivateRoute>
+            <Accounts />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="accounts/create"
+        element={
+          <PrivateRoute>
+            <CreateAccount />
+          </PrivateRoute>
+        }
+      />
       <Route path="helpContact" element={<HelpContact />} />
       {/* TODO CHECK Loaders, Route Parameters And ErrorElement Example */}
       <Route

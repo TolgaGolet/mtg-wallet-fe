@@ -57,6 +57,14 @@ export default function RootLayout() {
                 >
                   Home
                 </UnstyledButton>
+                {user ? (
+                  <UnstyledButton
+                    onClick={() => navigate("/accounts", { replace: false })}
+                    className={classes.control}
+                  >
+                    Accounts
+                  </UnstyledButton>
+                ) : null}
                 <UnstyledButton
                   onClick={() => navigate("/careers", { replace: false })}
                   className={classes.control}
@@ -123,6 +131,19 @@ export default function RootLayout() {
           >
             Home
           </UnstyledButton>
+          {user ? (
+            <UnstyledButton
+              onClick={() => {
+                navigate("/accounts", { replace: false });
+                toggle();
+              }}
+              className={classes.control}
+              mb={mobileButtonMargin}
+              ml={mobileButtonMargin}
+            >
+              Accounts
+            </UnstyledButton>
+          ) : null}
           <UnstyledButton
             onClick={() => {
               navigate("/careers", { replace: false });
