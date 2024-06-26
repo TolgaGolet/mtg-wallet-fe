@@ -104,6 +104,7 @@ export default function Accounts() {
         fullWidth
         leftSection={<IconPlus size={14} />}
         mt="md"
+        size="md"
         disabled={isLoading}
         loading={isButtonLoading}
         onClick={onClickCreateAccount}
