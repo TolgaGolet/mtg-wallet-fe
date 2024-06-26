@@ -76,7 +76,7 @@ export default function CreateAccount() {
               placeholder="Account Name"
               {...form.getInputProps("name")}
               required
-              size="lg"
+              size="md"
             />
             <Select
               label="Type"
