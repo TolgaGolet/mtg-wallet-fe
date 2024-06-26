@@ -88,6 +88,7 @@ export default function CreateAccount() {
               nothingFoundMessage="Nothing found..."
               required
               mt="md"
+              size="md"
             />
             <AmountInput
               label="Balance"
@@ -96,6 +97,7 @@ export default function CreateAccount() {
               form={form}
               fieldName="balance"
               mt="md"
+              size="md"
             ></AmountInput>
             <Select
               label="Currency"
@@ -110,8 +112,15 @@ export default function CreateAccount() {
               nothingFoundMessage="Nothing found..."
               required
               mt="md"
+              size="md"
             />
-            <Button type="submit" loading={isLoading} fullWidth mt="xl">
+            <Button
+              type="submit"
+              loading={isLoading}
+              fullWidth
+              mt="xl"
+              size="md"
+            >
               Create
             </Button>
           </form>

@@ -75,6 +75,7 @@ const Login = () => {
               placeholder="Username"
               {...form.getInputProps("username")}
               required
+              size="md"
             />
             <PasswordInput
               label="Password"
@@ -82,8 +83,15 @@ const Login = () => {
               {...form.getInputProps("password")}
               required
               mt="md"
+              size="md"
             />
-            <Button type="submit" loading={isLoading} fullWidth mt="xl">
+            <Button
+              type="submit"
+              loading={isLoading}
+              fullWidth
+              mt="xl"
+              size="md"
+            >
               Sign in
             </Button>
             <Group justify="space-between" mt="lg">

@@ -81,32 +81,42 @@ const SignUp = () => {
               placeholder="Username"
               {...form.getInputProps("username")}
               required
+              size="md"
             />
             <TextInput
               label="Email"
               placeholder="Email"
               {...form.getInputProps("email")}
               required
+              size="md"
             />
             <TextInput
               label="Name"
               placeholder="Name"
               {...form.getInputProps("name")}
               required
+              size="md"
             />
             <TextInput
               label="Surname"
               placeholder="Surname"
               {...form.getInputProps("surname")}
+              size="md"
             />
             <PasswordInput
               label="Password"
               placeholder="Password"
               {...form.getInputProps("password")}
               required
-              mt="md"
+              size="md"
             />
-            <Button type="submit" loading={isLoading} fullWidth mt="xl">
+            <Button
+              type="submit"
+              loading={isLoading}
+              fullWidth
+              mt="xl"
+              size="md"
+            >
               Sign up
             </Button>
             <Group justify="space-between" mt="lg">
