@@ -2,6 +2,7 @@ import { createContext, useState, useEffect, useMemo } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import showNotification from "../components/showNotification";
+import { useMantineColorScheme } from "@mantine/core";
 
 const AuthContext = createContext();
 const authTokensLocalStorageKey =
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }) => {
   );
   let [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { clearColorScheme } = useMantineColorScheme();
 
   const loginUser = async (e, setIsLoading, setErrorData) => {
     let response = await fetch(
@@ -71,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     setAuthTokens(null);
     setUser(null);
     localStorage.removeItem(authTokensLocalStorageKey);
+    clearColorScheme();
     navigate("/login", { replace: true });
     showNotification("You have been successfully logged out!", "success");
   };
