@@ -12,7 +12,7 @@ import {
   FocusTrap,
   Alert,
 } from "@mantine/core";
-import { useForm, hasLength, isEmail } from "@mantine/form";
+import { useForm, hasLength } from "@mantine/form";
 import { IconX } from "@tabler/icons-react";
 
 const SignUp = () => {
@@ -33,19 +33,24 @@ const SignUp = () => {
     },
 
     validate: {
-      username: hasLength(
-        { min: 3, max: 15 },
-        "Username must be 3-15 characters long"
-      ),
-      email: isEmail("Invalid email address"),
+      username: (val) =>
+        val.length > 15 || val.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
+          ? "Username must be 3-15 characters and contain only letters and numbers"
+          : null,
+      email: (val) =>
+        val.length > 100 ||
+        val.length < 3 ||
+        !/^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$/.test(val)
+          ? "Email must be 3-100 characters and should be valid"
+          : null,
       name: hasLength({ min: 3, max: 15 }, "Name must be 3-15 characters long"),
       surname: hasLength(
         { min: 0, max: 15 },
         "Surname must be 0-15 characters long"
       ),
       password: hasLength(
-        { min: 3, max: 15 },
-        "Password must be 3-15 characters long"
+        { min: 3, max: 30 },
+        "Password must be 3-30 characters long"
       ),
     },
   });

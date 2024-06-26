@@ -35,13 +35,13 @@ const Login = () => {
       //   val.length > 15 || val.length < 3
       //     ? "Name must be 3-15 characters long"
       //     : null,
-      username: hasLength(
-        { min: 3, max: 15 },
-        "Username must be 3-15 characters long"
-      ),
+      username: (val) =>
+        val.length > 15 || val.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
+          ? "Username must be 3-15 characters and contain only letters and numbers"
+          : null,
       password: hasLength(
-        { min: 3, max: 15 },
-        "Password must be 3-15 characters long"
+        { min: 3, max: 30 },
+        "Password must be 3-30 characters long"
       ),
     },
   });
@@ -60,7 +60,7 @@ const Login = () => {
             {errorData.message}
           </Alert>
         ) : null}
-        <FocusTrap active={false}>
+        <FocusTrap active={true}>
           <form
             onSubmit={form.onSubmit((e) => {
               setIsLoading(true);
