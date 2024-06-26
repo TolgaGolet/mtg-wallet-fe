@@ -20,7 +20,7 @@ const theme = createTheme({
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-  <MantineProvider theme={theme} defaultColorScheme="dark">
+  <MantineProvider theme={theme} defaultColorScheme="auto">
     <Notifications />
     <App />
   </MantineProvider>
