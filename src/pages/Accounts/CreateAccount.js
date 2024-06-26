@@ -82,7 +82,7 @@ export default function CreateAccount() {
               placeholder="Account Type"
               clearable={true}
               data={accountTypes}
-              {...form.getInputProps("typeKey")}
+              {...form.getInputProps("typeValue")}
               searchable
               nothingFoundMessage="Nothing found..."
               required
@@ -104,7 +104,7 @@ export default function CreateAccount() {
                 value: currency.value,
                 label: currency.value + " - " + currency.label,
               }))}
-              {...form.getInputProps("currencyKey")}
+              {...form.getInputProps("currencyValue")}
               searchable
               nothingFoundMessage="Nothing found..."
               required
