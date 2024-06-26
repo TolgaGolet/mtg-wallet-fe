@@ -88,6 +88,9 @@ export default function Accounts() {
         <Skeleton height={100} mt={10} />
         <Skeleton height={100} mt={10} />
         <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
       </>
     );
   };
@@ -104,7 +107,8 @@ export default function Accounts() {
         fullWidth
         leftSection={<IconPlus size={14} />}
         mt="md"
-        size="md"
+        mb={50}
+        size="lg"
         disabled={isLoading}
         loading={isButtonLoading}
         onClick={onClickCreateAccount}
