@@ -43,10 +43,14 @@ export default function Accounts() {
             <Text fz="xl" className={classes.label}>
               {account.name}
             </Text>
-            <Text fz="sm">{account.type.value}</Text>
+            <Text fz="sm">{account.type.label}</Text>
           </div>
 
-          <div className={classes.balance}>
+          <div
+            className={`${classes.balance} ${
+              account.balance < 0 ? classes.negativeBalance : ""
+            }`}
+          >
             <NumberFormatter
               prefix={account.currency.value + " "}
               value={account.balance}
@@ -101,6 +105,7 @@ export default function Accounts() {
   };
 
   const renderCreateAccountButton = () => {
+    let isAccountLimitReached = accountList?.length >= 15;
     return (
       <Button
         justify="center"
@@ -109,11 +114,11 @@ export default function Accounts() {
         mt="md"
         mb={50}
         size="lg"
-        disabled={isLoading}
+        disabled={isLoading || isAccountLimitReached}
         loading={isButtonLoading}
         onClick={onClickCreateAccount}
       >
-        Create an account
+        {isAccountLimitReached ? "Account limit reached" : "Create an account"}
       </Button>
     );
   };
