@@ -1,36 +1,41 @@
-.card {
-    background-color: var(--mantine-color-body);
-  }
-  
   .label {
-    font-family:
-      Greycliff CF,
-      var(--mantine-font-family);
-    font-weight: 700;
-    line-height: 1;
-  }
-  
-  .inner {
-    display: flex;
-  
-    @media (max-width: $mantine-breakpoint-xs) {
-      flex-direction: column;
-    }
-  }
-  
-  .balance {
-    flex: 1;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    font-weight: bold;
-  
-    @media (max-width: $mantine-breakpoint-xs) {
-      justify-content: center;
-      margin-top: var(--mantine-spacing-md);
-    }
-  }
+  font-family:
+    Greycliff CF,
+    var(--mantine-font-family);
+  font-weight: 700;
+  line-height: 1;
+}
 
-  .negativeBalance {
-    color: red;
+.inner {
+  display: flex;
+
+  @media (max-width: $mantine-breakpoint-xs) {
+    flex-direction: column;
   }
+}
+
+.balance {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-weight: bold;
+
+  @media (max-width: $mantine-breakpoint-xs) {
+    justify-content: center;
+    margin-top: var(--mantine-spacing-md);
+  }
+}
+
+.negativeBalance {
+  color: red;
+}
+
+.rightArrow {
+  flex: 0.1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  color: var(--mantine-color-dark-3);
+  margin-left: var(--mantine-spacing-xs);
+}

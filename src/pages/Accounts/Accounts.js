@@ -1,7 +1,15 @@
-import { Alert, Button, Card, Skeleton, Text, Title } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Card,
+  Group,
+  Skeleton,
+  Text,
+  Title,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 import classes from "./Accounts.module.css";
-import { IconInfoCircle, IconPlus } from "@tabler/icons-react";
+import { IconArrowRight, IconInfoCircle, IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAxios from "../../utils/useAxios";
 import AmountFormatter from "../../components/AmountFormatter";
@@ -26,9 +34,9 @@ export default function Accounts() {
       <Card
         withBorder
         p="l"
+        pr="xs"
         radius="md"
         mb={10}
-        className={classes.card}
         key={account.id}
         onClick={() => navigate(`/accounts/${account.id}`, { replace: false })}
       >
@@ -37,7 +45,7 @@ export default function Accounts() {
             <Text fz="xl" className={classes.label}>
               {account.name}
             </Text>
-            <Text fz="sm">{account.type.label}</Text>
+            <Text fz="sm">{account.type?.label}</Text>
           </div>
 
           <div
@@ -46,9 +54,12 @@ export default function Accounts() {
             }`}
           >
             <AmountFormatter
-              prefix={account.currency.value}
+              prefix={account.currency?.value}
               value={account.balance}
             />
+          </div>
+          <div className={classes.rightArrow}>
+            <IconArrowRight />
           </div>
         </div>
       </Card>
@@ -100,28 +111,25 @@ export default function Accounts() {
     let isAccountLimitReached = accountList?.length >= 15;
     return (
       <Button
-        justify="center"
-        fullWidth
-        leftSection={<IconPlus size={14} />}
-        mt="md"
-        mb={50}
-        size="lg"
+        leftSection={<IconPlus size={16} />}
         disabled={isLoading || isAccountLimitReached}
         loading={isButtonLoading}
         onClick={onClickCreateAccount}
       >
-        {isAccountLimitReached ? "Account limit reached" : "Create an account"}
+        {isAccountLimitReached ? "Account limit reached" : "Add"}
       </Button>
     );
   };
 
   return (
     <>
-      <Title order={2} mb="md">
-        Accounts
-      </Title>
+      <Group justify="space-between" align="flex-start">
+        <Title order={2} mb="md">
+          Accounts
+        </Title>
+        {renderCreateAccountButton()}
+      </Group>
       {renderContent()}
-      {renderCreateAccountButton()}
     </>
   );
 }

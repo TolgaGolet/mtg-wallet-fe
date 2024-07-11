@@ -30,7 +30,7 @@ export default function TransactionRow({
     <Card mb="xs" withBorder {...props}>
       <Group justify="space-between" align="flex-start">
         <Box>
-          <Text fw="500">{payee}</Text>
+          <Text fw="700">{payee}</Text>
           <Text>
             {parentCategory ? category + " (" + parentCategory + ")" : category}
           </Text>
