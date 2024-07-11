@@ -34,11 +34,11 @@ const Login = () => {
 
     validate: {
       // username: (val) =>
-      //   val.length > 15 || val.length < 3
+      //   val?.length > 15 || val?.length < 3
       //     ? "Name must be 3-15 characters long"
       //     : null,
       username: (val) =>
-        val.length > 15 || val.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
+        val?.length > 15 || val?.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
           ? "Username must be 3-15 characters and contain only letters and numbers"
           : null,
       password: hasLength(

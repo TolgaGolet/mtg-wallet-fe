@@ -31,7 +31,7 @@ export default function CreateAccount() {
 
     validate: {
       name: (val) =>
-        val.length > 50 || val.length < 3 || !/^[a-zA-Z0-9\s]+$/.test(val)
+        val?.length > 50 || val?.length < 3 || !/^[a-zA-Z0-9\s]+$/.test(val)
           ? "Name must be 3-50 characters and contain only letters, numbers and spaces"
           : null,
     },
@@ -62,8 +62,10 @@ export default function CreateAccount() {
 
   return (
     <>
-      <Title order={2}>Create a New Account</Title>
-      <Fieldset legend="Account information" mt="lg">
+      <Title order={2} mb="md">
+        Create a New Account
+      </Title>
+      <Fieldset legend="Account information">
         <FocusTrap active={false}>
           <form
             onSubmit={form.onSubmit((e) => {
