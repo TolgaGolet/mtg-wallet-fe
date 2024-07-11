@@ -55,13 +55,16 @@ export default function AccountDetail() {
             <FieldTextLabel>Name</FieldTextLabel>
             <FieldTextData>{accountDetails?.name}</FieldTextData>
             <FieldTextLabel>Account Type</FieldTextLabel>
-            <FieldTextData>{accountDetails?.type?.value}</FieldTextData>
+            <FieldTextData>{accountDetails?.type?.label}</FieldTextData>
             <FieldTextLabel>Balance</FieldTextLabel>
             <FieldTextData>
               <AmountFormatter value={accountDetails?.balance} />
             </FieldTextData>
             <FieldTextLabel>Currency</FieldTextLabel>
-            <FieldTextData>{accountDetails?.currency?.value}</FieldTextData>
+            <FieldTextData>
+              {accountDetails?.currency?.value} -{" "}
+              {accountDetails?.currency?.label}
+            </FieldTextData>
           </Box>
           <ActionIcon variant="default" size="lg" aria-label="Edit">
             <IconPencil style={{ width: rem(22), height: rem(22) }} />
