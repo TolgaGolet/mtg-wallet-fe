@@ -25,6 +25,7 @@ import SignUp from "./pages/SignUp";
 import Accounts from "./pages/Accounts/Accounts";
 import CreateAccount from "./pages/Accounts/CreateAccount";
 import HelpContact from "./pages/HelpContact";
+import AccountDetail from "./pages/Accounts/AccountDetail";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -59,6 +60,14 @@ const router = createBrowserRouter(
         element={
           <PrivateRoute>
             <CreateAccount />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="accounts/:accountId"
+        element={
+          <PrivateRoute>
+            <AccountDetail />
           </PrivateRoute>
         }
       />

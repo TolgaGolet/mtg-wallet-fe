@@ -1,17 +1,10 @@
-import {
-  Alert,
-  Button,
-  Card,
-  NumberFormatter,
-  Skeleton,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Alert, Button, Card, Skeleton, Text, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import classes from "./Accounts.module.css";
 import { IconInfoCircle, IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAxios from "../../utils/useAxios";
+import AmountFormatter from "../../components/AmountFormatter";
 
 export default function Accounts() {
   const callApi = useAxios();
@@ -21,8 +14,8 @@ export default function Accounts() {
   let [accountList, setAccountList] = useState([]);
 
   useEffect(() => {
-    callApi.get("account/get-users-all").then((response) => {
-      setAccountList(response.data);
+    callApi.post("account/search", {}).then((response) => {
+      setAccountList(response.data?.content);
       setIsLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -34,9 +27,10 @@ export default function Accounts() {
         withBorder
         p="l"
         radius="md"
+        mb={10}
         className={classes.card}
         key={account.id}
-        mt={10}
+        onClick={() => navigate(`/accounts/${account.id}`, { replace: false })}
       >
         <div className={classes.inner}>
           <div>
@@ -51,10 +45,9 @@ export default function Accounts() {
               account.balance < 0 ? classes.negativeBalance : ""
             }`}
           >
-            <NumberFormatter
-              prefix={account.currency.value + " "}
+            <AmountFormatter
+              prefix={account.currency.value}
               value={account.balance}
-              thousandSeparator
             />
           </div>
         </div>
@@ -69,7 +62,6 @@ export default function Accounts() {
         color="red"
         title="No available accounts"
         icon={<IconInfoCircle />}
-        mt={10}
       >
         Create a new account.
       </Alert>
@@ -125,7 +117,9 @@ export default function Accounts() {
 
   return (
     <>
-      <Title order={2}>Accounts</Title>
+      <Title order={2} mb="md">
+        Accounts
+      </Title>
       {renderContent()}
       {renderCreateAccountButton()}
     </>
