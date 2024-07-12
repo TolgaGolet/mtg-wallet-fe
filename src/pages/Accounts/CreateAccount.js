@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Fieldset,
-  FocusTrap,
-  Select,
-  TextInput,
-  Title,
-} from "@mantine/core";
+import { Button, Fieldset, FocusTrap, Select, TextInput } from "@mantine/core";
 import useAxios from "../../utils/useAxios";
 import { useForm } from "@mantine/form";
 import { useNavigate } from "react-router-dom";
 import AmountInput from "../../components/AmountInput";
 import showNotification from "../../components/showNotification";
+import PageTitle from "../../components/PageTitle";
 
 export default function CreateAccount() {
   const callApi = useAxios();
@@ -62,9 +56,7 @@ export default function CreateAccount() {
 
   return (
     <>
-      <Title order={2} mb="md">
-        Create a New Account
-      </Title>
+      <PageTitle isBackButtonVisible={true} value="Create a New Account" />
       <Fieldset legend="Account information">
         <FocusTrap active={false}>
           <form
