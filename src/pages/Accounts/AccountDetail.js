@@ -15,6 +15,7 @@ import FieldTextLabel from "../../components/FieldTextLabel";
 import FieldTextData from "../../components/FieldTextData";
 import { IconPencil } from "@tabler/icons-react";
 import TransactionRow from "../../components/TransactionRow";
+import PageTitle from "../../components/PageTitle";
 
 export default function AccountDetail() {
   const { accountId } = useParams();
@@ -106,9 +107,7 @@ export default function AccountDetail() {
 
   return (
     <>
-      <Title order={2} mb="md">
-        Account Details
-      </Title>
+      <PageTitle isBackButtonVisible={true} value="Account Details" />
       {isAccountDetailsLoading
         ? renderSkeletonAccountDetails()
         : renderAccountDetails()}

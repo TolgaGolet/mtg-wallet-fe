@@ -1,18 +1,11 @@
-import {
-  Alert,
-  Button,
-  Card,
-  Group,
-  Skeleton,
-  Text,
-  Title,
-} from "@mantine/core";
+import { Alert, Button, Card, Group, Skeleton, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import classes from "./Accounts.module.css";
 import { IconArrowRight, IconInfoCircle, IconPlus } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import useAxios from "../../utils/useAxios";
 import AmountFormatter from "../../components/AmountFormatter";
+import PageTitle from "../../components/PageTitle";
 
 export default function Accounts() {
   const callApi = useAxios();
@@ -124,9 +117,7 @@ export default function Accounts() {
   return (
     <>
       <Group justify="space-between" align="flex-start">
-        <Title order={2} mb="md">
-          Accounts
-        </Title>
+        <PageTitle value="Accounts" />
         {renderCreateAccountButton()}
       </Group>
       {renderContent()}
