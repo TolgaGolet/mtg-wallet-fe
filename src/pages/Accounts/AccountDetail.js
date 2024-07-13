@@ -9,7 +9,7 @@ import {
   rem,
 } from "@mantine/core";
 import useAxios from "../../utils/useAxios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import AmountFormatter from "../../components/AmountFormatter";
 import FieldTextLabel from "../../components/FieldTextLabel";
 import FieldTextData from "../../components/FieldTextData";
@@ -20,6 +20,7 @@ import PageTitle from "../../components/PageTitle";
 export default function AccountDetail() {
   const { accountId } = useParams();
   const callApi = useAxios();
+  const navigate = useNavigate();
   let [isAccountDetailsLoading, setIsAccountDetailsLoading] = useState(true);
   let [isLatestTransactionsLoading, setIsLatestTransactionsLoading] =
     useState(true);
@@ -67,7 +68,16 @@ export default function AccountDetail() {
               {accountDetails?.currency?.label}
             </FieldTextData>
           </Box>
-          <ActionIcon variant="default" size="lg" aria-label="Edit">
+          <ActionIcon
+            variant="default"
+            size="lg"
+            aria-label="Edit"
+            onClick={() => {
+              navigate(`/accounts/create-or-edit/${accountDetails?.id}`, {
+                replace: false,
+              });
+            }}
+          >
             <IconPencil style={{ width: rem(22), height: rem(22) }} />
           </ActionIcon>
         </Group>

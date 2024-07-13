@@ -23,7 +23,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Accounts from "./pages/Accounts/Accounts";
-import CreateAccount from "./pages/Accounts/CreateAccount";
+import CreateOrEditAccount from "./pages/Accounts/CreateOrEditAccount";
 import HelpContact from "./pages/HelpContact";
 import AccountDetail from "./pages/Accounts/AccountDetail";
 
@@ -56,10 +56,10 @@ const router = createBrowserRouter(
         }
       />
       <Route
-        path="accounts/create"
+        path="accounts/create-or-edit/:accountId"
         element={
           <PrivateRoute>
-            <CreateAccount />
+            <CreateOrEditAccount />
           </PrivateRoute>
         }
       />

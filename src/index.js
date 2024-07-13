@@ -13,6 +13,7 @@ import "@mantine/spotlight/styles.css";
 import "@mantine/nprogress/styles.css";
 import { MantineProvider, createTheme } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import { ModalsProvider } from "@mantine/modals";
 
 const theme = createTheme({
   /** Put your mantine theme override here */
@@ -22,6 +23,8 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <MantineProvider theme={theme} defaultColorScheme="auto">
     <Notifications />
-    <App />
+    <ModalsProvider>
+      <App />
+    </ModalsProvider>
   </MantineProvider>
 );

@@ -97,7 +97,7 @@ export default function Accounts() {
 
   const onClickCreateAccount = () => {
     setIsButtonLoading(true);
-    navigate("/accounts/create", { replace: false });
+    navigate("/accounts/create-or-edit/create", { replace: false });
   };
 
   const renderCreateAccountButton = () => {
