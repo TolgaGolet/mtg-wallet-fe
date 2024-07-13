@@ -13,27 +13,25 @@ import useAxios from "../../utils/useAxios";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
 import { useNavigate, useParams } from "react-router-dom";
-import AmountInput from "../../components/AmountInput";
 import showNotification from "../../components/showNotification";
 import PageTitle from "../../components/PageTitle";
 
-export default function CreateOrEditAccount() {
-  const { accountId } = useParams();
+export default function CreateOrEditCategory() {
+  const { categoryId } = useParams();
   const callApi = useAxios();
   const navigate = useNavigate();
   let [isLoading, setIsLoading] = useState(true);
-  let [accountTypes, setAccountTypes] = useState([]);
-  let [currencies, setCurrencies] = useState([]);
-  let isEdit = accountId !== "create";
-  let [accountDetails, setAccountDetails] = useState({});
+  let [transactionTypes, setTransactionTypes] = useState([]);
+  let [parentCategoryList, setParentCategoryList] = useState([]);
+  let isEdit = categoryId !== "create";
+  let [categoryDetails, setCategoryDetails] = useState({});
 
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
       name: "",
-      typeValue: "",
-      balance: 0.0,
-      currencyValue: "",
+      transactionTypeValue: "EXP",
+      parentCategoryName: null,
     },
 
     validate: {
@@ -47,12 +45,19 @@ export default function CreateOrEditAccount() {
   });
 
   useEffect(() => {
-    callApi.get("account/create/enums").then((response) => {
-      setAccountTypes(response.data?.accountTypes);
-      setCurrencies(response.data?.currencies);
+    callApi.get("category/create/enums").then((response) => {
+      setTransactionTypes(response.data?.transactionTypes);
+      setParentCategoryList(
+        response.data?.parentCategoryList?.filter((item) => {
+          return (
+            item?.value !== categoryId &&
+            item?.parentCategoryId + "" !== categoryId
+          );
+        })
+      );
       if (isEdit) {
-        callApi.post("account/search", { id: accountId }).then((response) => {
-          setAccountDetails(response.data?.content[0]);
+        callApi.post("category/search", { id: categoryId }).then((response) => {
+          setCategoryDetails(response.data?.content[0]);
           setIsLoading(false);
         });
       }
@@ -63,21 +68,28 @@ export default function CreateOrEditAccount() {
 
   useEffect(() => {
     let formValues = {
-      ...accountDetails,
-      typeValue: accountDetails?.type?.value,
-      currencyValue: accountDetails?.currency?.value,
+      ...categoryDetails,
+      transactionTypeValue: categoryDetails?.transactionType?.value || "EXP",
+      parentCategoryName: categoryDetails?.parentCategoryId
+        ? categoryDetails?.parentCategoryId + ""
+        : null,
     };
     form.setValues(formValues);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountDetails]);
+  }, [categoryDetails]);
 
-  const createAccount = (request) => {
+  const createCategory = (request) => {
+    request = {
+      ...request,
+      parentCategoryId: request?.parentCategoryName,
+      parentCategoryName: null,
+    };
     callApi
-      .post("account/create", request)
+      .post("category/create", request)
       .then((response) => {
-        navigate("/accounts", { replace: true });
+        navigate("/categories", { replace: true });
         setIsLoading(false);
-        showNotification("Account created successfully", "success");
+        showNotification("Category created successfully", "success");
       })
       .catch((error) => {
         console.log(error);
@@ -85,13 +97,18 @@ export default function CreateOrEditAccount() {
       });
   };
 
-  const editAccount = (request) => {
+  const editCategory = (request) => {
+    request = {
+      ...request,
+      parentCategoryId: request?.parentCategoryName,
+      parentCategoryName: null,
+    };
     callApi
-      .put(`account/update/${accountId}`, request)
+      .put(`category/update/${categoryId}`, request)
       .then((response) => {
-        navigate(`/accounts/${accountId}`, { replace: true });
+        navigate("/categories", { replace: true });
         setIsLoading(false);
-        showNotification("Account updated successfully", "success");
+        showNotification("Category updated successfully", "success");
       })
       .catch((error) => {
         console.log(error);
@@ -99,14 +116,14 @@ export default function CreateOrEditAccount() {
       });
   };
 
-  const deleteAccount = () => {
+  const deleteCategory = () => {
     setIsLoading(true);
     callApi
-      .delete(`account/delete/${accountId}`)
+      .delete(`category/delete/${categoryId}`)
       .then((response) => {
-        navigate("/accounts", { replace: true });
+        navigate("/categories", { replace: true });
         setIsLoading(false);
-        showNotification("Account deleted successfully", "success");
+        showNotification("Category deleted successfully", "success");
       })
       .catch((error) => {
         console.log(error);
@@ -116,19 +133,19 @@ export default function CreateOrEditAccount() {
 
   const openDeleteConfirmModal = () => {
     modals.openConfirmModal({
-      title: "Delete this account?",
+      title: "Delete this category?",
       centered: true,
       children: (
         <Text size="sm">
-          Are you sure you want to delete this account? This action won't delete
-          your transactions.
+          Are you sure you want to delete this category? This action won't
+          delete your transactions.
         </Text>
       ),
       labels: { confirm: "Confirm", cancel: "Cancel" },
       confirmProps: { color: "red" },
       onCancel: () => {},
       onConfirm: () => {
-        deleteAccount();
+        deleteCategory();
       },
     });
   };
@@ -137,62 +154,47 @@ export default function CreateOrEditAccount() {
     <>
       <PageTitle
         isBackButtonVisible={true}
-        value={isEdit ? "Edit Account" : "Create a New Account"}
+        value={isEdit ? "Edit Category" : "Create a New Category"}
       />
       <Box pos="relative">
         <LoadingOverlay visible={isLoading} />
-        <Fieldset legend="Account information" disabled={isLoading}>
+        <Fieldset legend="Category information" disabled={isLoading}>
           <FocusTrap active={false}>
             <form
               onSubmit={form.onSubmit((e) => {
                 setIsLoading(true);
-                isEdit ? editAccount(e) : createAccount(e);
+                isEdit ? editCategory(e) : createCategory(e);
               })}
             >
               <TextInput
                 label="Name"
-                placeholder="Account Name"
+                placeholder="Category Name"
                 {...form.getInputProps("name")}
                 required
                 size="md"
               />
               <Select
-                label="Type"
-                placeholder="Account Type"
+                label="Transaction Type"
+                placeholder="Transaction Type"
                 clearable={true}
-                data={accountTypes}
-                {...form.getInputProps("typeValue")}
+                data={transactionTypes}
+                {...form.getInputProps("transactionTypeValue")}
                 searchable
                 nothingFoundMessage="Nothing found..."
                 required
                 mt="md"
                 size="md"
               />
-              <AmountInput
-                label="Balance"
-                placeholder="Account Balance"
-                required={true}
-                form={form}
-                fieldName="balance"
-                mt="md"
-                size="md"
-                disabled={isEdit}
-              ></AmountInput>
               <Select
-                label="Currency"
-                placeholder="Account Currency"
+                label="Parent Category"
+                placeholder="Parent Category"
                 clearable={true}
-                data={currencies.map((currency) => ({
-                  value: currency.value,
-                  label: currency.value + " - " + currency.label,
-                }))}
-                {...form.getInputProps("currencyValue")}
+                data={parentCategoryList}
+                {...form.getInputProps("parentCategoryName")}
                 searchable
                 nothingFoundMessage="Nothing found..."
-                required
                 mt="md"
                 size="md"
-                disabled={isEdit}
               />
               <Button
                 type="submit"
@@ -212,7 +214,7 @@ export default function CreateOrEditAccount() {
                   color="red"
                   onClick={openDeleteConfirmModal}
                 >
-                  Delete this account
+                  Delete this category
                 </Button>
               )}
             </form>

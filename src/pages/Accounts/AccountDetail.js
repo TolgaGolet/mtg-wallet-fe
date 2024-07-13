@@ -31,17 +31,17 @@ export default function AccountDetail() {
     callApi.post("account/search", { id: accountId }).then((response) => {
       setAccountDetails(response.data?.content[0]);
       setIsAccountDetailsLoading(false);
+      callApi
+        .post(
+          "transaction/search",
+          { sourceAccountId: accountId },
+          { params: { pageNo: 0 } }
+        )
+        .then((response) => {
+          setRecentTransactions(response.data?.content);
+          setIsLatestTransactionsLoading(false);
+        });
     });
-    callApi
-      .post(
-        "transaction/search",
-        { sourceAccountId: accountId },
-        { params: { pageNo: 0 } }
-      )
-      .then((response) => {
-        setRecentTransactions(response.data?.content);
-        setIsLatestTransactionsLoading(false);
-      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
