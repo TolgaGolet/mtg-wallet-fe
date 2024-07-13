@@ -14,41 +14,41 @@ import { useNavigate } from "react-router-dom";
 import useAxios from "../../utils/useAxios";
 import PageTitle from "../../components/PageTitle";
 
-export default function Categories() {
+export default function Payees() {
   const callApi = useAxios();
   const navigate = useNavigate();
   let [isLoading, setIsLoading] = useState(true);
   let [isButtonLoading, setIsButtonLoading] = useState(false);
-  let [categoryList, setCategoryList] = useState([]);
+  let [payeeList, setPayeeList] = useState([]);
   let [totalPages, setTotalPages] = useState(0);
   let [pageNo, setPageNo] = useState(0);
 
   useEffect(() => {
     callApi
-      .post("category/search", {}, { params: { pageNo: pageNo } })
+      .post("payee/search", {}, { params: { pageNo: pageNo } })
       .then((response) => {
-        setCategoryList(response.data?.content);
+        setPayeeList(response.data?.content);
         setTotalPages(response.data?.totalPages);
         setIsLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageNo]);
 
-  const renderCategoryCards = () => {
-    return categoryList.map((category) => (
+  const renderPayeeCards = () => {
+    return payeeList.map((payee) => (
       <Card
         withBorder
-        key={category.id}
+        key={payee.id}
         onClick={() =>
-          navigate(`/categories/create-or-edit/${category.id}`, {
+          navigate(`/payees/create-or-edit/${payee.id}`, {
             replace: false,
           })
         }
       >
         <Group justify="space-between" align="center">
           <div>
-            <Text>{category.name}</Text>
-            <Text fz="sm">{category.parentCategoryName || "-"}</Text>
+            <Text>{payee.name}</Text>
+            <Text fz="sm">{payee.categoryName}</Text>
           </div>
           <div>
             <IconArrowRight />
@@ -63,10 +63,10 @@ export default function Categories() {
       <Alert
         variant="light"
         color="red"
-        title="No available categories"
+        title="No available payees"
         icon={<IconInfoCircle />}
       >
-        Create a new category.
+        Create a new payee.
       </Alert>
     );
   };
@@ -74,8 +74,8 @@ export default function Categories() {
   const renderContent = () => {
     if (isLoading) {
       return renderSkeletonCards();
-    } else if (categoryList.length > 0) {
-      return renderCategoryCards();
+    } else if (payeeList.length > 0) {
+      return renderPayeeCards();
     } else {
       return renderEmptyState();
     }
@@ -98,21 +98,21 @@ export default function Categories() {
     );
   };
 
-  const onClickCreateCategory = () => {
+  const onClickCreatePayee = () => {
     setIsButtonLoading(true);
-    navigate("/categories/create-or-edit/create", { replace: false });
+    navigate("/payees/create-or-edit/create", { replace: false });
   };
 
-  const renderCreateCategoryButton = () => {
-    let isCategoryLimitReached = categoryList?.length >= 50;
+  const renderCreatePayeeButton = () => {
+    let isPayeeLimitReached = payeeList?.length >= 100;
     return (
       <Button
         leftSection={<IconPlus size={16} />}
-        disabled={isLoading || isCategoryLimitReached}
+        disabled={isLoading || isPayeeLimitReached}
         loading={isButtonLoading}
-        onClick={onClickCreateCategory}
+        onClick={onClickCreatePayee}
       >
-        {isCategoryLimitReached ? "Category limit reached" : "Add"}
+        {isPayeeLimitReached ? "Payee limit reached" : "Add"}
       </Button>
     );
   };
@@ -127,11 +127,11 @@ export default function Categories() {
   return (
     <>
       <Group justify="space-between" align="flex-start">
-        <PageTitle value="Categories" />
-        {renderCreateCategoryButton()}
+        <PageTitle value="Payees" />
+        {renderCreatePayeeButton()}
       </Group>
       {renderContent()}
-      {categoryList.length > 0 && (
+      {payeeList.length > 0 && (
         <Center mb="lg" mt="md">
           <Pagination
             total={totalPages}

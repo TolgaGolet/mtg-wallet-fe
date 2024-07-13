@@ -22,6 +22,8 @@ import HelpContact from "./pages/HelpContact";
 import AccountDetail from "./pages/Accounts/AccountDetail";
 import Categories from "./pages/Categories/Categories";
 import CreateOrEditCategory from "./pages/Categories/CreateOrEditCategory";
+import Payees from "./pages/Payees/Payees";
+import CreateOrEditPayee from "./pages/Payees/CreateOrEditPayee";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -64,6 +66,22 @@ const router = createBrowserRouter(
         element={
           <PrivateRoute>
             <AccountDetail />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="payees"
+        element={
+          <PrivateRoute>
+            <Payees />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="payees/create-or-edit/:payeeId"
+        element={
+          <PrivateRoute>
+            <CreateOrEditPayee />
           </PrivateRoute>
         }
       />
