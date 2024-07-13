@@ -10,15 +10,9 @@ import { AuthProvider } from "./context/AuthContext";
 
 // layouts
 import RootLayout from "./layouts/RootLayout";
-import CareersLayout from "./layouts/CareersLayout";
-import CareersError from "./pages/careers/CareersError";
 
 // pages
 import NotFound from "./pages/NotFound";
-import Careers, { careersLoader } from "./pages/careers/Careers";
-import CareerDetails, {
-  careerDetailsLoader,
-} from "./pages/careers/CareerDetails";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -26,6 +20,8 @@ import Accounts from "./pages/Accounts/Accounts";
 import CreateOrEditAccount from "./pages/Accounts/CreateOrEditAccount";
 import HelpContact from "./pages/HelpContact";
 import AccountDetail from "./pages/Accounts/AccountDetail";
+import Categories from "./pages/Categories/Categories";
+import CreateOrEditCategory from "./pages/Categories/CreateOrEditCategory";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -71,20 +67,23 @@ const router = createBrowserRouter(
           </PrivateRoute>
         }
       />
-      <Route path="helpContact" element={<HelpContact />} />
-      {/* TODO CHECK Loaders, Route Parameters And ErrorElement Example */}
       <Route
-        path="careers"
-        element={<CareersLayout />}
-        errorElement={<CareersError />}
-      >
-        <Route index element={<Careers />} loader={careersLoader} />
-        <Route
-          path=":id"
-          element={<CareerDetails />}
-          loader={careerDetailsLoader}
-        ></Route>
-      </Route>
+        path="categories"
+        element={
+          <PrivateRoute>
+            <Categories />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="categories/create-or-edit/:categoryId"
+        element={
+          <PrivateRoute>
+            <CreateOrEditCategory />
+          </PrivateRoute>
+        }
+      />
+      <Route path="helpContact" element={<HelpContact />} />
       <Route path="*" element={<NotFound />} />
     </Route>
   )
