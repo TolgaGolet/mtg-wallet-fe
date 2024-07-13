@@ -67,6 +67,14 @@ export default function RootLayout() {
                 ) : null}
                 {user ? (
                   <UnstyledButton
+                    onClick={() => navigate("/payees", { replace: false })}
+                    className={classes.control}
+                  >
+                    Payees
+                  </UnstyledButton>
+                ) : null}
+                {user ? (
+                  <UnstyledButton
                     onClick={() => navigate("/categories", { replace: false })}
                     className={classes.control}
                   >
@@ -144,6 +152,19 @@ export default function RootLayout() {
               ml={mobileButtonMargin}
             >
               Accounts
+            </UnstyledButton>
+          ) : null}
+          {user ? (
+            <UnstyledButton
+              onClick={() => {
+                navigate("/payees", { replace: false });
+                toggle();
+              }}
+              className={classes.control}
+              mb={mobileButtonMargin}
+              ml={mobileButtonMargin}
+            >
+              Payees
             </UnstyledButton>
           ) : null}
           {user ? (
