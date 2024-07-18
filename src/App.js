@@ -13,7 +13,7 @@ import RootLayout from "./layouts/RootLayout";
 
 // pages
 import NotFound from "./pages/NotFound";
-import Home from "./pages/Home";
+import Home from "./pages/Home/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Accounts from "./pages/Accounts/Accounts";
