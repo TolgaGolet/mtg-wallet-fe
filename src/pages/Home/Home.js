@@ -123,7 +123,7 @@ export default function Home() {
 
   const renderIntervals = () => {
     return (
-      <Group c="dimmed" mt="md" ml={rem(2)}>
+      <Group c="dimmed" mt="md" ml={rem(2)} gap={rem(30)}>
         <UnstyledButton
           className={`${classes.intervalButton} ${
             selectedInterval === Interval.DAILY ? classes.selectedInterval : ""
@@ -177,12 +177,12 @@ export default function Home() {
       >
         <Group justify="space-between">
           <Group>
-            <Text size="xs" c="dimmed" className={classes.title}>
+            <Text size="md" c="dimmed" className={classes.title}>
               Net Value
             </Text>
             {isVisible ? (
               <IconEye
-                size="1rem"
+                size="1.3rem"
                 stroke={1.5}
                 onClick={() => setIsVisible(false)}
               />
@@ -199,22 +199,21 @@ export default function Home() {
               value: currency.value,
               label: currency.value,
             }))}
-            searchable
-            size="xs"
+            allowDeselect={false}
+            size="md"
             disabled={isLoading}
             value={selectedCurrency}
             onChange={(value) => setSelectedCurrency(value)}
-            style={{ width: 100 }}
+            style={{ width: 90 }}
           />
         </Group>
 
         <Group align="flex-end" gap="xs" mt={25}>
-          <Text style={{ fontSize: rem(24), fontWeight: 700, lineHeight: 1 }}>
+          <Text fz={30} fw={700} lh={1}>
             {isVisible ? currencySymbol + "0.00" : "******"}
           </Text>
           <Text
             c={diffPercent > 0 ? "teal" : "red"}
-            fz="sm"
             fw={500}
             className={classes.diff}
           >
@@ -245,7 +244,7 @@ export default function Home() {
         onClick={item.onClick}
       >
         <item.icon color={theme.colors[item.color][6]} size="2rem" />
-        <Text size="xs" mt={7}>
+        <Text size="xs" mt={7} ta="center">
           {item.title}
         </Text>
       </UnstyledButton>
