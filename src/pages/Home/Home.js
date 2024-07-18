@@ -65,6 +65,13 @@ export default function Home() {
       },
     },
     {
+      title: "Create Transaction",
+      icon: IconPlus,
+      color: "green",
+      style: { border: `1px solid ${theme.colors.green[6]}` },
+      onClick: () => {},
+    },
+    {
       title: "Categories",
       icon: IconListDetails,
       color: "blue",
@@ -85,13 +92,6 @@ export default function Home() {
       icon: IconRepeat,
       color: "teal",
       style: { color: theme.colors.gray[7] },
-      onClick: () => {},
-    },
-    {
-      title: "Create Transaction",
-      icon: IconPlus,
-      color: "green",
-      style: { border: `1px solid ${theme.colors.green[6]}` },
       onClick: () => {},
     },
     // { title: "Receipts", icon: IconReceipt, color: "green", style: {}, onClick: () => {} },
@@ -188,7 +188,7 @@ export default function Home() {
               />
             ) : (
               <IconEyeOff
-                size="1rem"
+                size="1.3rem"
                 stroke={1.5}
                 onClick={() => setIsVisible(true)}
               />
@@ -200,7 +200,7 @@ export default function Home() {
               label: currency.value,
             }))}
             allowDeselect={false}
-            size="md"
+            size="sm"
             disabled={isLoading}
             value={selectedCurrency}
             onChange={(value) => setSelectedCurrency(value)}
@@ -267,9 +267,12 @@ export default function Home() {
       <Text fw={500}>Hello {user?.sub} 👋</Text>
       {isLoading ? renderNetValuePaperSkeleton() : renderNetValuePaper()}
       {renderShortcuts()}
-      <Title order={3} mb="md" mt="md">
-        Recent Transactions
-      </Title>
+      <Group justify="space-between">
+        <Title order={3} mb="md" mt="md">
+          Recent Transactions
+        </Title>
+        <Text c="dimmed">See All -&gt;</Text>
+      </Group>
     </>
   );
 }
