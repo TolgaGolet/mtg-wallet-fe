@@ -30,20 +30,24 @@ import useAxios from "../../utils/useAxios";
 import { Currency } from "../../enum/Currency";
 import { Interval } from "../../enum/Interval";
 import { useNavigate } from "react-router-dom";
+import AmountFormatter from "../../components/AmountFormatter";
 
 export default function Home() {
   let { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const callApi = useAxios();
   const theme = useMantineTheme();
-  let diff = 0;
-  let diffPercent = 0;
   let [isLoading, setIsLoading] = useState(true);
   let [isVisible, setIsVisible] = useState(true);
   let [currencies, setCurrencies] = useState([]);
   let [selectedCurrency, setSelectedCurrency] = useState("TRY");
   let [currencySymbol, setCurrencySymbol] = useState(Currency.TRY.symbol);
   let [selectedInterval, setSelectedInterval] = useState(Interval.DAILY);
+  let [netValueData, setNetValueData] = useState({
+    netValue: 0.0,
+    profitLoss: 0.0,
+    profitLossPercentage: 0.0,
+  });
 
   const shortcutItems = [
     {
@@ -100,10 +104,24 @@ export default function Home() {
     // { title: "Cashback", icon: IconCashBanknote, color: "orange", style: {}, onClick: () => {} },
   ];
 
+  const getNetValueData = () => {
+    callApi
+      .get("home/net-value", {
+        params: {
+          currencyValue: selectedCurrency,
+          intervalValue: selectedInterval,
+        },
+      })
+      .then((response) => {
+        setNetValueData(response.data);
+        setIsLoading(false);
+      });
+  };
+
   useEffect(() => {
-    callApi.get("account/create/enums").then((response) => {
+    callApi.get("home/enums").then((response) => {
       setCurrencies(response.data?.currencies);
-      setIsLoading(false);
+      getNetValueData();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -113,8 +131,20 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCurrency]);
 
+  useEffect(() => {
+    setIsLoading(true);
+    getNetValueData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCurrency]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getNetValueData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedInterval]);
+
   const renderDiffIcon = () => {
-    return diffPercent > 0 ? (
+    return netValueData?.profitLossPercentage > 0 ? (
       <IconArrowUpRight size="1rem" stroke={1.5} />
     ) : (
       <IconArrowDownRight size="1rem" stroke={1.5} />
@@ -123,12 +153,13 @@ export default function Home() {
 
   const renderIntervals = () => {
     return (
-      <Group c="dimmed" mt="md" ml={rem(2)} gap={rem(30)}>
+      <Group c="dimmed" mt="md" ml={rem(2)} gap={rem(30)} p={rem(5)}>
         <UnstyledButton
           className={`${classes.intervalButton} ${
             selectedInterval === Interval.DAILY ? classes.selectedInterval : ""
           }`}
           onClick={() => setSelectedInterval(Interval.DAILY)}
+          disabled={isLoading}
         >
           D
         </UnstyledButton>
@@ -137,6 +168,7 @@ export default function Home() {
             selectedInterval === Interval.WEEKLY ? classes.selectedInterval : ""
           }`}
           onClick={() => setSelectedInterval(Interval.WEEKLY)}
+          disabled={isLoading}
         >
           W
         </UnstyledButton>
@@ -147,6 +179,7 @@ export default function Home() {
               : ""
           }`}
           onClick={() => setSelectedInterval(Interval.MONTHLY)}
+          disabled={isLoading}
         >
           M
         </UnstyledButton>
@@ -155,6 +188,7 @@ export default function Home() {
             selectedInterval === Interval.YEARLY ? classes.selectedInterval : ""
           }`}
           onClick={() => setSelectedInterval(Interval.YEARLY)}
+          disabled={isLoading}
         >
           Y
         </UnstyledButton>
@@ -162,8 +196,8 @@ export default function Home() {
     );
   };
 
-  const renderNetValuePaperSkeleton = () => {
-    return <Skeleton height={150} mt={10} />;
+  const renderNetValueSkeleton = () => {
+    return <Skeleton height={40} mt={-10} />;
   };
 
   const renderNetValuePaper = () => {
@@ -171,6 +205,7 @@ export default function Home() {
       <Paper
         withBorder
         p="md"
+        pb="sm"
         radius="md"
         mt="md"
         className={classes.netValuePaper}
@@ -209,26 +244,49 @@ export default function Home() {
         </Group>
 
         <Group align="flex-end" gap="xs" mt={25}>
-          <Text fz={30} fw={700} lh={1}>
-            {isVisible ? currencySymbol + "0.00" : "******"}
-          </Text>
-          <Text
-            c={diffPercent > 0 ? "teal" : "red"}
-            fw={500}
-            className={classes.diff}
-          >
-            {isVisible ? (
-              <>
-                <span>{currencySymbol + diff + " (" + diffPercent + "%)"}</span>
-                {renderDiffIcon()}
-              </>
-            ) : (
-              <>
-                <span>{"*** (**%)"}</span>
-                {renderDiffIcon()}
-              </>
-            )}
-          </Text>
+          {isLoading ? (
+            renderNetValueSkeleton()
+          ) : (
+            <>
+              <Text fz={30} fw={700} lh={1}>
+                {isVisible ? (
+                  <AmountFormatter
+                    prefix={currencySymbol}
+                    value={netValueData?.netValue}
+                  ></AmountFormatter>
+                ) : (
+                  "******"
+                )}
+              </Text>
+              <Text
+                c={netValueData?.profitLossPercentage > 0 ? "teal" : "red"}
+                fw={500}
+                className={classes.diff}
+              >
+                {isVisible ? (
+                  <>
+                    <span>
+                      <AmountFormatter
+                        prefix={currencySymbol}
+                        value={
+                          netValueData?.profitLossPercentage > 0
+                            ? netValueData?.profitLoss
+                            : -netValueData?.profitLoss
+                        }
+                      ></AmountFormatter>
+                      {" (" + netValueData?.profitLossPercentage + "%)"}
+                    </span>
+                    {renderDiffIcon()}
+                  </>
+                ) : (
+                  <>
+                    <span>{"*** (**%)"}</span>
+                    {renderDiffIcon()}
+                  </>
+                )}
+              </Text>
+            </>
+          )}
         </Group>
         {renderIntervals()}
       </Paper>
@@ -265,12 +323,10 @@ export default function Home() {
   return (
     <>
       <Text fw={500}>Hello {user?.sub} 👋</Text>
-      {isLoading ? renderNetValuePaperSkeleton() : renderNetValuePaper()}
+      {renderNetValuePaper()}
       {renderShortcuts()}
-      <Group justify="space-between">
-        <Title order={3} mb="md" mt="md">
-          Recent Transactions
-        </Title>
+      <Group justify="space-between" mb="md" mt="md">
+        <Title order={3}>Recent Transactions</Title>
         <Text c="dimmed">See All -&gt;</Text>
       </Group>
     </>
