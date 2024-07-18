@@ -146,7 +146,7 @@ export default function Home() {
   const renderDiffIcon = () => {
     return netValueData?.profitLossPercentage > 0 ? (
       <IconArrowUpRight size="1rem" stroke={1.5} />
-    ) : (
+    ) : netValueData?.profitLossPercentage === 0 ? null : (
       <IconArrowDownRight size="1rem" stroke={1.5} />
     );
   };
@@ -197,7 +197,7 @@ export default function Home() {
   };
 
   const renderNetValueSkeleton = () => {
-    return <Skeleton height={40} mt={-10} />;
+    return <Skeleton height={40} mt={-15} />;
   };
 
   const renderNetValuePaper = () => {
@@ -212,18 +212,18 @@ export default function Home() {
       >
         <Group justify="space-between">
           <Group>
-            <Text size="md" c="dimmed" className={classes.title}>
+            <Text size="sm" c="dimmed" className={classes.title}>
               Net Value
             </Text>
             {isVisible ? (
               <IconEye
-                size="1.3rem"
+                size="1.2rem"
                 stroke={1.5}
                 onClick={() => setIsVisible(false)}
               />
             ) : (
               <IconEyeOff
-                size="1.3rem"
+                size="1.2rem"
                 stroke={1.5}
                 onClick={() => setIsVisible(true)}
               />
@@ -235,7 +235,7 @@ export default function Home() {
               label: currency.value,
             }))}
             allowDeselect={false}
-            size="sm"
+            size="xs"
             disabled={isLoading}
             value={selectedCurrency}
             onChange={(value) => setSelectedCurrency(value)}
@@ -248,7 +248,7 @@ export default function Home() {
             renderNetValueSkeleton()
           ) : (
             <>
-              <Text fz={30} fw={700} lh={1}>
+              <Text fz={25} fw={700} lh={1}>
                 {isVisible ? (
                   <AmountFormatter
                     prefix={currencySymbol}
@@ -259,7 +259,14 @@ export default function Home() {
                 )}
               </Text>
               <Text
-                c={netValueData?.profitLossPercentage > 0 ? "teal" : "red"}
+                c={
+                  netValueData?.profitLossPercentage > 0
+                    ? "teal"
+                    : netValueData?.profitLossPercentage === 0
+                    ? "dimmed"
+                    : "red"
+                }
+                fz={13}
                 fw={500}
                 className={classes.diff}
               >
@@ -327,7 +334,9 @@ export default function Home() {
       {renderShortcuts()}
       <Group justify="space-between" mb="md" mt="md">
         <Title order={3}>Recent Transactions</Title>
-        <Text c="dimmed">See All -&gt;</Text>
+        <Text size="sm" c="dimmed">
+          See All -&gt;
+        </Text>
       </Group>
     </>
   );
