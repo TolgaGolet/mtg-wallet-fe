@@ -186,6 +186,7 @@ export default function CreateOrEditCategory() {
                 {...form.getInputProps("transactionTypeValue")}
                 searchable
                 nothingFoundMessage="Nothing found..."
+                disabled={isEdit}
                 required
                 mt="md"
                 size="md"
