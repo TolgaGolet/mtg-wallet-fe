@@ -193,7 +193,7 @@ export default function TransactionModal({
     validate: {
       amount: (val) => (val < 0.01 ? "Amount must be greater than 0.01" : null),
       targetAccountId: (val) =>
-        val === form.getValues()?.sourceAccountId
+        val === form?.getValues()?.sourceAccountId
           ? "Source and target account cannot be the same"
           : null,
     },
@@ -481,9 +481,9 @@ export default function TransactionModal({
                           accountList.find(
                             (account2) =>
                               account2.id + "" ===
-                              form.getValues()?.sourceAccountId
+                              form?.getValues()?.sourceAccountId
                           )?.currency?.value &&
-                        account.id + "" !== form.getValues()?.sourceAccountId
+                        account.id + "" !== form?.getValues()?.sourceAccountId
                     )
                     .map((account) => ({
                       value: account.id + "",
