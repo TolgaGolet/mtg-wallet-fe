@@ -170,6 +170,7 @@ export default function CreateOrEditPayee() {
                 }))}
                 {...form.getInputProps("categoryName")}
                 required
+                disabled={isEdit}
                 searchable
                 nothingFoundMessage="Nothing found..."
                 mt="md"
