@@ -6,6 +6,8 @@ export default function AmountInput({
   required,
   form,
   fieldName,
+  min,
+  max,
   ...props
 }) {
   return (
@@ -19,9 +21,9 @@ export default function AmountInput({
       decimalSeparator="."
       thousandSeparator=","
       hideControls
-      max={"999999999999999.99"}
-      min={"-999999999999999.99"}
-      clampBehavior="strict"
+      max={max || "999999999999999.99"}
+      min={min || "-999999999999999.99"}
+      // clampBehavior="strict"
       {...props}
     />
   );

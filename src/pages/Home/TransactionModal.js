@@ -1,0 +1,537 @@
+import {
+  Badge,
+  Box,
+  Button,
+  Center,
+  Fieldset,
+  FocusTrap,
+  Loader,
+  LoadingOverlay,
+  Modal,
+  rem,
+  SegmentedControl,
+  Select,
+  Text,
+  TextInput,
+  useMantineTheme,
+} from "@mantine/core";
+import { DateTimePicker } from "@mantine/dates";
+import { useForm } from "@mantine/form";
+import { IconCash, IconReceipt, IconTransfer } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { modals } from "@mantine/modals";
+import useAxios from "../../utils/useAxios";
+import { useDebouncedValue } from "@mantine/hooks";
+import AmountInput from "../../components/AmountInput";
+
+export default function TransactionModal({
+  opened,
+  close,
+  loadedRecentTransactions,
+  transactionId,
+}) {
+  const callApi = useAxios();
+  const theme = useMantineTheme();
+  let [isLoading, setIsLoading] = useState(true);
+  let [typeValue, setTypeValue] = useState("EXP");
+  let [categoryList, setCategoryList] = useState([]);
+  let [accountList, setAccountList] = useState([]);
+  let [isCategoryDisabled, setIsCategoryDisabled] = useState(false);
+  let [isPayeeLoading, setIsPayeeLoading] = useState(false);
+  let [payeeList, setPayeeList] = useState([]);
+  let [payeeSearchKeyword, setPayeeSearchKeyword] = useState(null);
+  let [payeeSearchCache, setPayeeSearchCache] = useState({});
+  let [recentTransactions, setRecentTransactions] = useState([]);
+  const [debouncedPayeeSearchKeyword] = useDebouncedValue(
+    payeeSearchKeyword,
+    500
+  );
+  let isEdit = transactionId !== null;
+  const newPayeePostFix = " (New)";
+  const newPayeeId = "newPayee";
+
+  const resetState = () => {
+    form.reset();
+    setTypeValue("EXP");
+  };
+
+  const openInEditMode = () => {
+    let transactionData = recentTransactions.find(
+      (transaction) => transaction.id === transactionId
+    );
+    if (transactionData) {
+      let formValues = {
+        ...transactionData,
+        dateTime: new Date(transactionData.dateTime),
+        payeeId: transactionData.payee?.id + "",
+        sourceAccountId: transactionData.sourceAccount?.id + "",
+        targetAccountId: transactionData.targetAccount?.id + "",
+      };
+      form.setValues(formValues);
+      setTypeValue(transactionData.type?.value);
+    }
+  };
+
+  const getEnums = () => {
+    setIsLoading(true);
+    callApi.get("transaction/create/enums").then((response) => {
+      setCategoryList(response.data?.categoryList?.content);
+      setAccountList(response.data?.accountList?.content);
+      isEdit && openInEditMode();
+      setIsLoading(false);
+    });
+  };
+
+  useEffect(() => {
+    if (!opened) {
+      resetState();
+      return;
+    }
+    if (loadedRecentTransactions) {
+      setRecentTransactions(loadedRecentTransactions);
+      getEnums();
+    } else if (!loadedRecentTransactions) {
+      setIsLoading(true);
+      callApi
+        .post("transaction/search", {}, { params: { pageNo: 0 } })
+        .then((response) => {
+          setRecentTransactions(response.data?.content);
+          getEnums();
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, recentTransactions]);
+
+  useEffect(() => {
+    if (
+      debouncedPayeeSearchKeyword === null ||
+      debouncedPayeeSearchKeyword.includes(newPayeePostFix)
+    ) {
+      return;
+    }
+    let existingPayee = payeeList.find(
+      (p) =>
+        p.name?.trim().toLowerCase() ===
+          debouncedPayeeSearchKeyword.trim().toLowerCase() &&
+        p.id !== newPayeeId
+    );
+    if (existingPayee) {
+      form.setFieldValue("categoryId", existingPayee.categoryId + "");
+      setIsCategoryDisabled(true);
+      return;
+    } else {
+      form.setFieldValue("categoryId", null);
+      setIsCategoryDisabled(false);
+    }
+    let request = { transactionTypeValue: typeValue };
+    if (
+      debouncedPayeeSearchKeyword &&
+      debouncedPayeeSearchKeyword?.length <= 50 &&
+      debouncedPayeeSearchKeyword?.length >= 3 &&
+      /^[a-zA-Z0-9\sçğıöşü]+$/.test(debouncedPayeeSearchKeyword)
+    ) {
+      request = {
+        ...request,
+        name: debouncedPayeeSearchKeyword,
+      };
+    }
+    let cacheData = payeeSearchCache[debouncedPayeeSearchKeyword + typeValue];
+    if (cacheData) {
+      processPayeeSearchResponse(request, cacheData);
+      return;
+    }
+    setIsPayeeLoading(true);
+    callApi
+      .post("payee/search", request, { params: { pageNo: 0 } })
+      .then((response) => {
+        setPayeeSearchCache({
+          ...payeeSearchCache,
+          [debouncedPayeeSearchKeyword + typeValue]: response,
+        });
+        processPayeeSearchResponse(request, response);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedPayeeSearchKeyword, typeValue]);
+
+  const processPayeeSearchResponse = (request, response) => {
+    addPayeeToContentIfNew(request, response);
+    setPayeeList(response.data?.content);
+    setIsPayeeLoading(false);
+  };
+
+  const addPayeeToContentIfNew = (request, response) => {
+    if (
+      request?.name &&
+      (response.data?.empty ||
+        !response.data?.content?.find(
+          (p) =>
+            p.name?.trim().toLowerCase() === request?.name?.trim().toLowerCase()
+        ))
+    ) {
+      let newPayee = {
+        name: debouncedPayeeSearchKeyword.trim() + newPayeePostFix,
+        id: newPayeeId,
+      };
+      let content = response.data?.content.filter((p) => p.id !== newPayeeId);
+      content.push(newPayee);
+      response.data.content = content;
+    }
+  };
+
+  const form = useForm({
+    validateInputOnBlur: true,
+    initialValues: {
+      payeeId: null,
+      categoryId: null,
+      amount: null,
+      dateTime: new Date(),
+      sourceAccountId: null,
+      targetAccountId: null,
+      notes: null,
+    },
+
+    validate: {
+      amount: (val) => (val < 0.01 ? "Amount must be greater than 0.01" : null),
+      targetAccountId: (val) =>
+        val === form.getValues()?.sourceAccountId
+          ? "Source and target account cannot be the same"
+          : null,
+    },
+  });
+
+  const createTransaction = (e) => {
+    let request = {
+      ...e,
+      typeValue: typeValue,
+      categoryId: parseInt(e.categoryId),
+      payeeId: e.payeeId === newPayeeId ? -1 : parseInt(e.payeeId),
+      payeeName: payeeList
+        .find((p) => p.id + "" === e.payeeId)
+        ?.name?.replace(newPayeePostFix, ""),
+      sourceAccountId: parseInt(e.sourceAccountId),
+      targetAccountId: parseInt(e.targetAccountId),
+    };
+    callApi
+      .post("transaction/create", request)
+      .then((response) => {
+        window.location.reload();
+      })
+      .catch((error) => {
+        console.log(error);
+        setIsLoading(false);
+      });
+  };
+
+  const editTransaction = (e) => {
+    // let request = { ...e, typeValue: typeValue };
+    // callApi
+    //   .put(`account/update/${accountId}`, request)
+    //   .then((response) => {
+    //     navigate(`/accounts/${accountId}`, { replace: true });
+    //     setIsLoading(false);
+    //     showNotification("Account updated successfully", "success");
+    //   })
+    //   .catch((error) => {
+    //     console.log(error);
+    //     setIsLoading(false);
+    //   });
+  };
+
+  const deleteTransaction = () => {
+    // setIsLoading(true);
+    // callApi
+    //   .delete(`account/delete/${accountId}`)
+    //   .then((response) => {
+    //     navigate("/accounts", { replace: true });
+    //     setIsLoading(false);
+    //     showNotification("Account deleted successfully", "success");
+    //   })
+    //   .catch((error) => {
+    //     console.log(error);
+    //     setIsLoading(false);
+    //   });
+  };
+
+  const openDeleteConfirmModal = () => {
+    modals.openConfirmModal({
+      title: "Delete this transaction?",
+      centered: true,
+      children: (
+        <Text size="sm">
+          Are you sure you want to delete this transaction? This action will
+          revert this transaction.
+        </Text>
+      ),
+      labels: { confirm: "Confirm", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onCancel: () => {},
+      onConfirm: () => {
+        deleteTransaction();
+      },
+    });
+  };
+
+  const getUniqueRecentTransactionsArray = () => {
+    const uniqueRecentTransactions = recentTransactions.reduce(
+      (acc, transaction) => {
+        const existingTransaction = acc.find(
+          (t) =>
+            t.payee?.name?.trim().toLowerCase() ===
+            transaction.payee?.name?.trim().toLowerCase()
+        );
+        if (!existingTransaction) {
+          acc.push(transaction);
+        }
+        return acc;
+      },
+      []
+    );
+    return Array.from(uniqueRecentTransactions);
+  };
+
+  const onClickSuggestedPayee = (payeeId) => {
+    form.setFieldValue("payeeId", payeeId + "");
+  };
+
+  const renderSuggestedPayees = () => {
+    return getUniqueRecentTransactionsArray()
+      .slice(0, 5)
+      .filter((transaction) => transaction.type?.value === typeValue)
+      .map((transaction) => (
+        <Badge
+          key={transaction.id}
+          variant="light"
+          mt="xs"
+          mr={rem(5)}
+          onClick={() => onClickSuggestedPayee(transaction.payee?.id)}
+        >
+          {transaction.payee?.name}
+        </Badge>
+      ));
+  };
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={close}
+      title={isEdit ? "Edit Transaction" : "Create Transaction"}
+      centered
+      transitionProps={{ transition: "fade", duration: 200 }}
+      overlayProps={{
+        backgroundOpacity: 0.55,
+        blur: 3,
+      }}
+    >
+      <SegmentedControl
+        value={typeValue}
+        onChange={(value) => {
+          form.setValues((prev) => ({ ...prev, payeeId: null }));
+          setTypeValue(value);
+        }}
+        fullWidth
+        disabled={isLoading}
+        data={[
+          {
+            label: (
+              <Center style={{ gap: 10 }}>
+                <IconReceipt
+                  style={{
+                    width: rem(16),
+                    height: rem(16),
+                    color: theme.colors.red[6],
+                  }}
+                />
+                <span>Expense</span>
+              </Center>
+            ),
+            value: "EXP",
+          },
+          {
+            label: (
+              <Center style={{ gap: 10 }}>
+                <IconCash
+                  style={{
+                    width: rem(16),
+                    height: rem(16),
+                    color: theme.colors.green[6],
+                  }}
+                />
+                <span>Income</span>
+              </Center>
+            ),
+            value: "INC",
+          },
+          {
+            label: (
+              <Center style={{ gap: 10 }}>
+                <IconTransfer
+                  style={{
+                    width: rem(16),
+                    height: rem(16),
+                    color: theme.colors.blue[6],
+                  }}
+                />
+                <span>Transfer</span>
+              </Center>
+            ),
+            value: "TRA",
+          },
+        ]}
+      />
+      <Box pos="relative" mt="md">
+        <LoadingOverlay visible={isLoading} />
+        <Fieldset disabled={isLoading}>
+          <FocusTrap active={true}>
+            <form
+              onSubmit={form.onSubmit((e) => {
+                setIsLoading(true);
+                isEdit ? editTransaction(e) : createTransaction(e);
+              })}
+            >
+              <Select
+                label="Payee"
+                placeholder="Payee"
+                description="Type to search or add a new one"
+                onSearchChange={setPayeeSearchKeyword}
+                rightSection={
+                  isPayeeLoading ? <Loader size="sm" type="dots" /> : null
+                }
+                clearable={true}
+                data={payeeList.map((payee) => ({
+                  value: payee.id + "",
+                  label: payee.name,
+                }))}
+                {...form.getInputProps("payeeId")}
+                searchable
+                required
+                disabled={isLoading}
+                mt="md"
+                size="md"
+              />
+              {renderSuggestedPayees()}
+              <Select
+                label="Category"
+                placeholder="Category"
+                clearable={true}
+                data={categoryList
+                  .filter(
+                    (category) => category.transactionType.value === typeValue
+                  )
+                  .map((category) => ({
+                    value: category.id + "",
+                    label: category.parentCategoryName
+                      ? category.name + " (" + category.parentCategoryName + ")"
+                      : category.name,
+                  }))}
+                {...form.getInputProps("categoryId")}
+                searchable
+                nothingFoundMessage="Nothing found. Add a new category from categories page."
+                required
+                disabled={isLoading || isCategoryDisabled}
+                mt="md"
+                size="md"
+              />
+              <AmountInput
+                label="Amount"
+                placeholder="Transaction Amount"
+                required={true}
+                form={form}
+                fieldName="amount"
+                min={0.01}
+                mt="md"
+                size="md"
+                disabled={isLoading}
+              ></AmountInput>
+              <DateTimePicker
+                label="Date and Time"
+                placeholder="Transaction date and time"
+                dropdownType="modal"
+                highlightToday={true}
+                {...form.getInputProps("dateTime")}
+                required
+                disabled={isLoading}
+                mt="md"
+                size="md"
+              />
+              <Select
+                label="Account"
+                placeholder="Select Account"
+                clearable={false}
+                data={accountList.map((account) => ({
+                  value: account.id + "",
+                  label: account.name,
+                }))}
+                {...form.getInputProps("sourceAccountId")}
+                searchable
+                nothingFoundMessage="Nothing found..."
+                required
+                disabled={isLoading}
+                mt="md"
+                size="md"
+              />
+              {typeValue === "TRA" && (
+                <Select
+                  label="Target Account"
+                  placeholder="Select Target Account"
+                  clearable={false}
+                  data={accountList
+                    .filter(
+                      (account) =>
+                        account.currency?.value ===
+                          accountList.find(
+                            (account2) =>
+                              account2.id + "" ===
+                              form.getValues()?.sourceAccountId
+                          )?.currency?.value &&
+                        account.id + "" !== form.getValues()?.sourceAccountId
+                    )
+                    .map((account) => ({
+                      value: account.id + "",
+                      label: account.name,
+                    }))}
+                  {...form.getInputProps("targetAccountId")}
+                  searchable
+                  nothingFoundMessage="Nothing found..."
+                  required={typeValue === "TRA"}
+                  disabled={isLoading || typeValue !== "TRA"}
+                  mt="md"
+                  size="md"
+                />
+              )}
+              <TextInput
+                label="Notes"
+                placeholder="Add a note (optional)"
+                maxLength={50}
+                {...form.getInputProps("notes")}
+                disabled={isLoading}
+                mt="md"
+                size="md"
+              />
+              <Button
+                type="submit"
+                loading={isLoading}
+                fullWidth
+                mt="xl"
+                size="md"
+              >
+                {isEdit ? "Save" : "Create"}
+              </Button>
+              {isEdit && (
+                <Button
+                  loading={isLoading}
+                  fullWidth
+                  mt="md"
+                  size="md"
+                  color="red"
+                  onClick={openDeleteConfirmModal}
+                >
+                  Delete this transaction
+                </Button>
+              )}
+            </form>
+          </FocusTrap>
+        </Fieldset>
+      </Box>
+    </Modal>
+  );
+}

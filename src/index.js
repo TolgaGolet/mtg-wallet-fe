@@ -14,17 +14,30 @@ import "@mantine/nprogress/styles.css";
 import { MantineProvider, createTheme } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
+import { DatesProvider } from "@mantine/dates";
 
 const theme = createTheme({
   /** Put your mantine theme override here */
 });
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+export const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+export const userTimezoneOffsetInHours = -new Date().getTimezoneOffset() / 60;
+
 root.render(
   <MantineProvider theme={theme} defaultColorScheme="auto">
     <Notifications />
     <ModalsProvider>
-      <App />
+      <DatesProvider
+        settings={{
+          // locale: "tr", import "dayjs/locale/tr";
+          firstDayOfWeek: 1,
+          weekendDays: [0, 6],
+          timezone: userTimezone || "UTC",
+        }}
+      >
+        <App />
+      </DatesProvider>
     </ModalsProvider>
   </MantineProvider>
 );

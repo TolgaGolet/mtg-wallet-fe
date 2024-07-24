@@ -44,7 +44,7 @@ export default function CreateOrEditPayee() {
 
   useEffect(() => {
     callApi.get("payee/create/enums").then((response) => {
-      setCategoryList(response.data?.categoryList);
+      setCategoryList(response.data?.categoryList?.content);
       if (isEdit) {
         callApi.post("payee/search", { id: payeeId }).then((response) => {
           setPayeeDetails(response.data?.content[0]);
@@ -162,7 +162,12 @@ export default function CreateOrEditPayee() {
                 label="Category"
                 placeholder="Category"
                 clearable={true}
-                data={categoryList}
+                data={categoryList.map((category) => ({
+                  value: category.id + "",
+                  label: category.parentCategoryName
+                    ? category.name + " (" + category.parentCategoryName + ")"
+                    : category.name,
+                }))}
                 {...form.getInputProps("categoryName")}
                 required
                 searchable
