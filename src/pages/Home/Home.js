@@ -31,6 +31,8 @@ import { Currency } from "../../enum/Currency";
 import { Interval } from "../../enum/Interval";
 import { useNavigate } from "react-router-dom";
 import AmountFormatter from "../../components/AmountFormatter";
+import TransactionModal from "./TransactionModal";
+import TransactionRow from "../../components/TransactionRow";
 
 export default function Home() {
   let { user } = useContext(AuthContext);
@@ -38,6 +40,9 @@ export default function Home() {
   const callApi = useAxios();
   const theme = useMantineTheme();
   let [isLoading, setIsLoading] = useState(true);
+  let [isRecentTransactionsLoading, setIsRecentTransactionsLoading] =
+    useState(true);
+  let [recentTransactions, setRecentTransactions] = useState(null);
   let [isVisible, setIsVisible] = useState(true);
   let [currencies, setCurrencies] = useState([]);
   let [selectedCurrency, setSelectedCurrency] = useState("TRY");
@@ -48,6 +53,8 @@ export default function Home() {
     profitLoss: 0.0,
     profitLossPercentage: 0.0,
   });
+  let [isTransactionModelOpened, setIsTransactionModelOpened] = useState(false);
+  let [displayedTransactionId, setDisplayedTransactionId] = useState(null);
 
   const shortcutItems = [
     {
@@ -73,7 +80,10 @@ export default function Home() {
       icon: IconPlus,
       color: "green",
       style: { border: `1px solid ${theme.colors.green[6]}` },
-      onClick: () => {},
+      onClick: () => {
+        setDisplayedTransactionId(null);
+        setIsTransactionModelOpened(true);
+      },
     },
     {
       title: "Categories",
@@ -122,17 +132,19 @@ export default function Home() {
     callApi.get("home/enums").then((response) => {
       setCurrencies(response.data?.currencies);
       getNetValueData();
+      callApi
+        .post("transaction/search", {}, { params: { pageNo: 0 } })
+        .then((response) => {
+          setRecentTransactions(response.data?.content);
+          setIsRecentTransactionsLoading(false);
+        });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    setCurrencySymbol(Currency[selectedCurrency]?.symbol);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCurrency]);
-
-  useEffect(() => {
     setIsLoading(true);
+    setCurrencySymbol(Currency[selectedCurrency]?.symbol);
     getNetValueData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCurrency]);
@@ -260,10 +272,10 @@ export default function Home() {
               </Text>
               <Text
                 c={
-                  netValueData?.profitLossPercentage > 0
-                    ? "teal"
-                    : netValueData?.profitLossPercentage === 0
+                  netValueData?.profitLossPercentage === 0
                     ? "dimmed"
+                    : netValueData?.profitLoss > 0
+                    ? "teal"
                     : "red"
                 }
                 fz={13}
@@ -327,6 +339,42 @@ export default function Home() {
     );
   };
 
+  const renderSkeletonRecentTransactions = () => {
+    return (
+      <>
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+        <Skeleton height={100} mt={10} />
+      </>
+    );
+  };
+
+  const onClickTransactionRow = (id) => {
+    setDisplayedTransactionId(id);
+    setIsTransactionModelOpened(true);
+  };
+
+  const renderRecentTransactions = () => {
+    return recentTransactions.map((transaction) => (
+      <TransactionRow
+        key={transaction.id}
+        payee={transaction.payee?.name}
+        category={transaction.payee?.category?.name}
+        parentCategory={transaction.payee?.category?.parentCategory?.name}
+        typeValue={transaction.type?.value}
+        amount={transaction.amount}
+        currencyValue={transaction.sourceAccount?.currency?.value}
+        dateTime={transaction.dateTime}
+        sourceAccount={transaction.sourceAccount?.name}
+        targetAccount={transaction.targetAccount?.name}
+        onClick={() => onClickTransactionRow(transaction.id)}
+      ></TransactionRow>
+    ));
+  };
+
   return (
     <>
       <Text fw={500}>Hello {user?.sub} 👋</Text>
@@ -338,6 +386,15 @@ export default function Home() {
           See All -&gt;
         </Text>
       </Group>
+      {isRecentTransactionsLoading
+        ? renderSkeletonRecentTransactions()
+        : renderRecentTransactions()}
+      <TransactionModal
+        opened={isTransactionModelOpened}
+        close={() => setIsTransactionModelOpened(false)}
+        loadedRecentTransactions={recentTransactions}
+        transactionId={displayedTransactionId}
+      ></TransactionModal>
     </>
   );
 }

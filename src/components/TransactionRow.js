@@ -1,5 +1,6 @@
 import { Box, Card, Group, Stack, Text } from "@mantine/core";
 import AmountFormatter from "./AmountFormatter";
+import { Currency } from "../enum/Currency";
 
 export default function TransactionRow({
   payee,
@@ -14,7 +15,14 @@ export default function TransactionRow({
   ...props
 }) {
   const date = new Date(dateTime);
-  const formattedDateTime = date.toLocaleString("tr-TR");
+  const formattedDateTime = date.toLocaleTimeString("tr-TR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 
   const getColorBasedOnTypeValue = (typeValue) => {
     if (typeValue === "INC") {
@@ -43,7 +51,7 @@ export default function TransactionRow({
         <Stack align="flex-end" justify="flex-start" gap="xs">
           <Text>{formattedDateTime}</Text>
           <AmountFormatter
-            prefix={currencyValue}
+            prefix={Currency[currencyValue]?.symbol || currencyValue}
             value={amount}
             style={{
               fontWeight: "bold",

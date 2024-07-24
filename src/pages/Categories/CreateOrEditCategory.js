@@ -25,6 +25,7 @@ export default function CreateOrEditCategory() {
   let [parentCategoryList, setParentCategoryList] = useState([]);
   let isEdit = categoryId !== "create";
   let [categoryDetails, setCategoryDetails] = useState({});
+  let [isParentCategoryDisabled, setIsParentCategoryDisabled] = useState(false);
 
   const form = useForm({
     validateInputOnBlur: true,
@@ -75,6 +76,7 @@ export default function CreateOrEditCategory() {
         : null,
     };
     form.setValues(formValues);
+    setIsParentCategoryDisabled(categoryDetails?.parent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryDetails]);
 
@@ -178,6 +180,9 @@ export default function CreateOrEditCategory() {
                 placeholder="Transaction Type"
                 clearable={true}
                 data={transactionTypes}
+                onSelect={(value) => {
+                  form.setFieldValue("parentCategoryName", null);
+                }}
                 {...form.getInputProps("transactionTypeValue")}
                 searchable
                 nothingFoundMessage="Nothing found..."
@@ -188,13 +193,23 @@ export default function CreateOrEditCategory() {
               <Select
                 label="Parent Category"
                 placeholder="Parent Category"
+                description={
+                  isParentCategoryDisabled
+                    ? "This category is already a parent category"
+                    : null
+                }
                 clearable={true}
-                data={parentCategoryList}
+                data={parentCategoryList.filter(
+                  (parentCategory) =>
+                    parentCategory?.transactionType?.value ===
+                    form.getValues()?.transactionTypeValue
+                )}
                 {...form.getInputProps("parentCategoryName")}
                 searchable
                 nothingFoundMessage="Nothing found..."
                 mt="md"
                 size="md"
+                disabled={isParentCategoryDisabled}
               />
               <Button
                 type="submit"
