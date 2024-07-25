@@ -157,9 +157,9 @@ export default function Home() {
   }, [selectedInterval]);
 
   const renderDiffIcon = () => {
-    return netValueData?.profitLossPercentage > 0 ? (
+    return netValueData?.profitLoss > 0 ? (
       <IconArrowUpRight size="1rem" stroke={1.5} />
-    ) : netValueData?.profitLossPercentage === 0 ? null : (
+    ) : netValueData?.profitLoss === 0 ? null : (
       <IconArrowDownRight size="1rem" stroke={1.5} />
     );
   };
@@ -359,6 +359,13 @@ export default function Home() {
   };
 
   const renderRecentTransactions = () => {
+    if (!recentTransactions || recentTransactions.length === 0) {
+      return (
+        <Text size="sm" c="dimmed">
+          No recent transactions
+        </Text>
+      );
+    }
     return recentTransactions.map((transaction) => (
       <TransactionRow
         key={transaction.id}
