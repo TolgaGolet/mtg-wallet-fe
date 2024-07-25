@@ -223,33 +223,40 @@ export default function TransactionModal({
   };
 
   const editTransaction = (e) => {
-    // let request = { ...e, typeValue: typeValue };
-    // callApi
-    //   .put(`account/update/${accountId}`, request)
-    //   .then((response) => {
-    //     navigate(`/accounts/${accountId}`, { replace: true });
-    //     setIsLoading(false);
-    //     showNotification("Account updated successfully", "success");
-    //   })
-    //   .catch((error) => {
-    //     console.log(error);
-    //     setIsLoading(false);
-    //   });
+    let request = {
+      ...e,
+      typeValue: typeValue,
+      categoryId: parseInt(e.categoryId),
+      payeeId: e.payeeId === newPayeeId ? -1 : parseInt(e.payeeId),
+      payeeName: payeeList
+        .find((p) => p.id + "" === e.payeeId)
+        ?.name?.replace(newPayeePostFix, ""),
+      sourceAccountId: parseInt(e.sourceAccountId),
+      targetAccountId: typeValue === "TRA" ? parseInt(e.targetAccountId) : null,
+    };
+    callApi
+      .put(`transaction/update/${transactionId}`, request)
+      .then((response) => {
+        window.location.reload();
+      })
+      .catch((error) => {
+        console.log(error);
+        setIsLoading(false);
+      });
   };
 
   const deleteTransaction = () => {
-    // setIsLoading(true);
-    // callApi
-    //   .delete(`account/delete/${accountId}`)
-    //   .then((response) => {
-    //     navigate("/accounts", { replace: true });
-    //     setIsLoading(false);
-    //     showNotification("Account deleted successfully", "success");
-    //   })
-    //   .catch((error) => {
-    //     console.log(error);
-    //     setIsLoading(false);
-    //   });
+    setIsLoading(true);
+    callApi
+      .delete(`transaction/delete/${transactionId}`)
+      .then((response) => {
+        setIsLoading(false);
+        window.location.reload();
+      })
+      .catch((error) => {
+        console.log(error);
+        setIsLoading(false);
+      });
   };
 
   const openDeleteConfirmModal = () => {
@@ -425,7 +432,11 @@ export default function TransactionModal({
                   }))}
                 {...form.getInputProps("categoryId")}
                 searchable
-                nothingFoundMessage="Nothing found. Add a new category from categories page."
+                nothingFoundMessage={
+                  "Nothing found. Add a new " +
+                  typeValue +
+                  " category from categories page."
+                }
                 required
                 disabled={isLoading || isCategoryDisabled}
                 mt="md"
@@ -463,7 +474,7 @@ export default function TransactionModal({
                 }))}
                 {...form.getInputProps("sourceAccountId")}
                 searchable
-                nothingFoundMessage="Nothing found..."
+                nothingFoundMessage="Nothing found. Create a new account from accounts page."
                 required
                 disabled={isLoading}
                 mt="md"
@@ -473,6 +484,7 @@ export default function TransactionModal({
                 <Select
                   label="Target Account"
                   placeholder="Select Target Account"
+                  description="Target account's currency must match the source account's currency"
                   clearable={false}
                   data={accountList
                     .filter(
@@ -491,7 +503,7 @@ export default function TransactionModal({
                     }))}
                   {...form.getInputProps("targetAccountId")}
                   searchable
-                  nothingFoundMessage="Nothing found..."
+                  nothingFoundMessage="Nothing found. Create a new account from accounts page."
                   required={typeValue === "TRA"}
                   disabled={isLoading || typeValue !== "TRA"}
                   mt="md"
