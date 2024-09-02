@@ -33,6 +33,22 @@ const getAxiosInstance = (authTokens) => {
   });
 };
 
+// Mantine Dates gets Dates as GMT +userTimezoneOffsetInHours and Axios converts Dates to UTC.
+// Backend uses LocalDateTime in UTC but we want to store user's relative timezone.
+// So we need to add userTimezone hours to the Date to get it in  user's relative timezone.
+const addUserTimezoneHoursToDates = (request) => {
+  if (request.data) {
+    Object.keys(request.data).forEach((key) => {
+      if (request.data[key] instanceof Date) {
+        request.data[key] = new Date(
+          request.data[key].getTime() +
+            userTimezoneOffsetInHours * 60 * 60 * 1000
+        ).toISOString();
+      }
+    });
+  }
+};
+
 const addRequestInterceptor = (
   axiosInstance,
   authTokens,
@@ -44,19 +60,7 @@ const addRequestInterceptor = (
     const user = jwt_decode(authTokens?.accessToken);
     const isExpired = dayjs.unix(user?.exp).diff(dayjs()) < 1;
 
-    // Mantine Dates gets Dates as GMT +userTimezoneOffsetInHours and Axios converts Dates to UTC.
-    // Backend uses LocalDateTime in UTC but we want to store user's relative timezone.
-    // So we need to add userTimezone hours to the Date to get it in  user's relative timezone.
-    if (request.data) {
-      Object.keys(request.data).forEach((key) => {
-        if (request.data[key] instanceof Date) {
-          request.data[key] = new Date(
-            request.data[key].getTime() +
-              userTimezoneOffsetInHours * 60 * 60 * 1000
-          ).toISOString();
-        }
-      });
-    }
+    addUserTimezoneHoursToDates(request);
 
     if (!isExpired) {
       return request;

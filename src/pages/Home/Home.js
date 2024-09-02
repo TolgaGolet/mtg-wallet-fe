@@ -137,7 +137,6 @@ export default function Home() {
         .then((response) => {
           setRecentTransactions(response.data?.content);
           setIsRecentTransactionsLoading(false);
-          callApi.post("payee/create-defaults", {});
         });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

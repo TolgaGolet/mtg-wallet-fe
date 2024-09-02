@@ -78,6 +78,15 @@ export const AuthProvider = ({ children }) => {
     showNotification("You have been successfully logged out!", "success");
   };
 
+  const createDefaults = (accessToken) => {
+    fetch(`${process.env.REACT_APP_API_BASE_URL}payee/create-defaults`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  };
+
   const signUpUser = async (e, setIsLoading, setErrorData) => {
     let response = await fetch(
       `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_SIGN_UP_URL}`,
@@ -97,10 +106,12 @@ export const AuthProvider = ({ children }) => {
     );
     if (response?.status === 200) {
       let data = await response?.json();
+      let accessToken = data?.accessToken;
       setAuthTokens(data);
-      setUser(jwt_decode(data?.accessToken));
+      setUser(jwt_decode(accessToken));
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
+      createDefaults(accessToken);
       showNotification("You have been successfully signed up", "success");
     } else if (response?.status === 409) {
       let message = await response.text();
