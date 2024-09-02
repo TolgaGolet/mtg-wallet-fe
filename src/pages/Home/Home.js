@@ -272,7 +272,7 @@ export default function Home() {
               </Text>
               <Text
                 c={
-                  netValueData?.profitLossPercentage === 0
+                  netValueData?.profitLoss === 0
                     ? "dimmed"
                     : netValueData?.profitLoss > 0
                     ? "teal"
@@ -287,11 +287,7 @@ export default function Home() {
                     <span>
                       <AmountFormatter
                         prefix={currencySymbol}
-                        value={
-                          netValueData?.profitLossPercentage > 0
-                            ? netValueData?.profitLoss
-                            : -netValueData?.profitLoss
-                        }
+                        value={netValueData?.profitLoss}
                       ></AmountFormatter>
                       {" (" + netValueData?.profitLossPercentage + "%)"}
                     </span>
