@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Center,
+  Container,
   Group,
   Pagination,
   Skeleton,
@@ -44,6 +45,7 @@ export default function Categories() {
             replace: false,
           })
         }
+        style={{ cursor: "pointer" }}
       >
         <Group justify="space-between" align="center">
           <div>
@@ -125,9 +127,9 @@ export default function Categories() {
   };
 
   return (
-    <>
+    <Container size="lg" px={0}>
       <Group justify="space-between" align="flex-start">
-        <PageTitle value="Categories" />
+        <PageTitle isBackButtonVisible={true} value="Categories" />
         {renderCreateCategoryButton()}
       </Group>
       {renderContent()}
@@ -141,6 +143,6 @@ export default function Categories() {
           />
         </Center>
       )}
-    </>
+    </Container>
   );
 }

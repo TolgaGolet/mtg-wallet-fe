@@ -39,3 +39,11 @@
   color: var(--mantine-color-dark-3);
   margin-left: var(--mantine-spacing-xs);
 }
+
+.accountRow {
+  cursor: pointer;
+}
+
+.accountRow:hover {
+  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4)) !important;
+}

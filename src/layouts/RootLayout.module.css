@@ -42,4 +42,5 @@
   @mixin light {
     color: var(--mantine-color-black);
   }
+  cursor: pointer;
 }
