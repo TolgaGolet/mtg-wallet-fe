@@ -1,4 +1,12 @@
-import { Alert, Button, Card, Group, Skeleton, Text } from "@mantine/core";
+import {
+  Alert,
+  Button,
+  Card,
+  Container,
+  Group,
+  Skeleton,
+  Text,
+} from "@mantine/core";
 import { useEffect, useState } from "react";
 import classes from "./Accounts.module.css";
 import { IconArrowRight, IconInfoCircle, IconPlus } from "@tabler/icons-react";
@@ -32,6 +40,7 @@ export default function Accounts() {
         mb={10}
         key={account.id}
         onClick={() => navigate(`/accounts/${account.id}`, { replace: false })}
+        className={classes.accountRow}
       >
         <div className={classes.inner}>
           <div>
@@ -115,12 +124,12 @@ export default function Accounts() {
   };
 
   return (
-    <>
+    <Container size="lg" px={0}>
       <Group justify="space-between" align="flex-start">
-        <PageTitle value="Accounts" />
+        <PageTitle isBackButtonVisible={true} value="Accounts" />
         {renderCreateAccountButton()}
       </Group>
       {renderContent()}
-    </>
+    </Container>
   );
 }

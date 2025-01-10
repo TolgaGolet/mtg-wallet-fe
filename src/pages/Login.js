@@ -11,7 +11,6 @@ import {
   Button,
   FocusTrap,
   Alert,
-  useMantineColorScheme,
 } from "@mantine/core";
 import { useForm, hasLength } from "@mantine/form";
 import { IconX } from "@tabler/icons-react";
@@ -24,7 +23,6 @@ const Login = () => {
     isErrorState: false,
     message: "",
   });
-  const { clearColorScheme } = useMantineColorScheme();
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
@@ -52,8 +50,7 @@ const Login = () => {
     if (user) {
       navigate("/", { replace: true });
     }
-    clearColorScheme();
-  }, [user, navigate, clearColorScheme]);
+  }, [user, navigate]);
 
   return (
     <Container size={420} my={40}>

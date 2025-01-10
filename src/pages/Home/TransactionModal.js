@@ -69,6 +69,17 @@ export default function TransactionModal({
       };
       form.setValues(formValues);
       setTypeValue(transactionData.type?.value);
+      if (transactionData.payee) {
+        setPayeeList((prev) => {
+          const payeeExists = prev.find(
+            (payee) => payee.id === transactionData.payee.id
+          );
+          if (payeeExists) {
+            return prev;
+          }
+          return [...prev, transactionData.payee];
+        });
+      }
     }
   };
 
@@ -127,7 +138,6 @@ export default function TransactionModal({
     if (
       debouncedPayeeSearchKeyword &&
       debouncedPayeeSearchKeyword?.length <= 50 &&
-      debouncedPayeeSearchKeyword?.length >= 3 &&
       /^[a-zA-Z0-9\sçğıöşü]+$/.test(debouncedPayeeSearchKeyword)
     ) {
       request = {
@@ -297,13 +307,22 @@ export default function TransactionModal({
   };
 
   const onClickSuggestedPayee = (payeeId) => {
+    if (!payeeList.find((p) => p.id + "" === payeeId + "")) {
+      let request = { id: payeeId };
+      setIsPayeeLoading(true);
+      callApi
+        .post("payee/search", request, { params: { pageNo: 0 } })
+        .then((response) => {
+          processPayeeSearchResponse(request, response);
+        });
+    }
     form.setFieldValue("payeeId", payeeId + "");
   };
 
   const renderSuggestedPayees = () => {
     return getUniqueRecentTransactionsArray()
-      .slice(0, 5)
       .filter((transaction) => transaction.type?.value === typeValue)
+      .slice(0, 5)
       .map((transaction) => (
         <Badge
           key={transaction.id}
@@ -311,6 +330,7 @@ export default function TransactionModal({
           mt="xs"
           mr={rem(5)}
           onClick={() => onClickSuggestedPayee(transaction.payee?.id)}
+          style={{ cursor: "pointer" }}
         >
           {transaction.payee?.name}
         </Badge>
@@ -470,11 +490,33 @@ export default function TransactionModal({
                 clearable={false}
                 data={accountList.map((account) => ({
                   value: account.id + "",
-                  label: account.name,
+                  label:
+                    account.name +
+                    " (" +
+                    account.balance +
+                    account.currency?.value +
+                    ")",
                 }))}
                 {...form.getInputProps("sourceAccountId")}
                 searchable
-                nothingFoundMessage="Nothing found. Create a new account from accounts page."
+                nothingFoundMessage={
+                  <Box>
+                    <Text size="sm">Nothing found.</Text>
+                    <Button
+                      variant="subtle"
+                      compact
+                      component="a"
+                      href="/accounts/create"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.location.href =
+                          "/accounts/create-or-edit/create";
+                      }}
+                    >
+                      Create a new account
+                    </Button>
+                  </Box>
+                }
                 required
                 disabled={isLoading}
                 mt="md"
@@ -499,11 +541,35 @@ export default function TransactionModal({
                     )
                     .map((account) => ({
                       value: account.id + "",
-                      label: account.name,
+                      label:
+                        account.name +
+                        " (" +
+                        account.balance +
+                        account.currency?.value +
+                        ")",
                     }))}
                   {...form.getInputProps("targetAccountId")}
                   searchable
-                  nothingFoundMessage="Nothing found. Create a new account from accounts page."
+                  nothingFoundMessage={
+                    <Box>
+                      <Text size="sm">
+                        No suitable account found of this type.
+                      </Text>
+                      <Button
+                        variant="subtle"
+                        compact
+                        component="a"
+                        href="/accounts/create"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.location.href =
+                            "/accounts/create-or-edit/create";
+                        }}
+                      >
+                        Create a new account
+                      </Button>
+                    </Box>
+                  }
                   required={typeValue === "TRA"}
                   disabled={isLoading || typeValue !== "TRA"}
                   mt="md"

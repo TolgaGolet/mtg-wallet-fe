@@ -47,7 +47,11 @@ export default function RootLayout() {
               size="sm"
             />
             <Group justify="space-between" style={{ flex: 1 }}>
-              <Title order={1} className={classes.title}>
+              <Title
+                order={1}
+                className={classes.title}
+                onClick={() => navigate("/", { replace: false })}
+              >
                 MTG Wallet
               </Title>
               <Group ml="xl" gap={20} visibleFrom="sm">

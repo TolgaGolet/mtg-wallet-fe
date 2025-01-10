@@ -8,6 +8,7 @@ import {
   Select,
   TextInput,
   Text,
+  Container,
 } from "@mantine/core";
 import useAxios from "../../utils/useAxios";
 import { useForm } from "@mantine/form";
@@ -136,7 +137,7 @@ export default function CreateOrEditPayee() {
   };
 
   return (
-    <>
+    <Container size="lg" px={0}>
       <PageTitle
         isBackButtonVisible={true}
         value={isEdit ? "Edit Payee" : "Create a New Payee"}
@@ -201,6 +202,6 @@ export default function CreateOrEditPayee() {
           </FocusTrap>
         </Fieldset>
       </Box>
-    </>
+    </Container>
   );
 }

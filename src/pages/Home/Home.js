@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from "react";
-import AuthContext from "../../context/AuthContext";
 import {
   Card,
   Group,
@@ -12,8 +11,16 @@ import {
   Title,
   UnstyledButton,
   useMantineTheme,
+  Container,
 } from "@mantine/core";
-import classes from "./Home.module.css";
+import { useNavigate } from "react-router-dom";
+import AuthContext from "../../context/AuthContext";
+import useAxios from "../../utils/useAxios";
+import { Currency } from "../../enum/Currency";
+import { Interval } from "../../enum/Interval";
+import AmountFormatter from "../../components/AmountFormatter";
+import TransactionModal from "./TransactionModal";
+import TransactionRow from "../../components/TransactionRow";
 import {
   IconArrowDownRight,
   IconArrowUpRight,
@@ -26,13 +33,7 @@ import {
   IconRepeat,
   IconReport,
 } from "@tabler/icons-react";
-import useAxios from "../../utils/useAxios";
-import { Currency } from "../../enum/Currency";
-import { Interval } from "../../enum/Interval";
-import { useNavigate } from "react-router-dom";
-import AmountFormatter from "../../components/AmountFormatter";
-import TransactionModal from "./TransactionModal";
-import TransactionRow from "../../components/TransactionRow";
+import classes from "./Home.module.css";
 
 export default function Home() {
   let { user } = useContext(AuthContext);
@@ -379,7 +380,7 @@ export default function Home() {
   };
 
   return (
-    <>
+    <Container size="lg" px={0}>
       <Text fw={500}>Hello {user?.sub} 👋</Text>
       {renderNetValuePaper()}
       {renderShortcuts()}
@@ -398,6 +399,6 @@ export default function Home() {
         loadedRecentTransactions={recentTransactions}
         transactionId={displayedTransactionId}
       ></TransactionModal>
-    </>
+    </Container>
   );
 }

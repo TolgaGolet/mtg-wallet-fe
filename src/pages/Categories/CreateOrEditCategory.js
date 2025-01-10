@@ -8,6 +8,7 @@ import {
   Select,
   TextInput,
   Text,
+  Container,
 } from "@mantine/core";
 import useAxios from "../../utils/useAxios";
 import { useForm } from "@mantine/form";
@@ -153,7 +154,7 @@ export default function CreateOrEditCategory() {
   };
 
   return (
-    <>
+    <Container size="lg" px={0}>
       <PageTitle
         isBackButtonVisible={true}
         value={isEdit ? "Edit Category" : "Create a New Category"}
@@ -237,6 +238,6 @@ export default function CreateOrEditCategory() {
           </FocusTrap>
         </Fieldset>
       </Box>
-    </>
+    </Container>
   );
 }
