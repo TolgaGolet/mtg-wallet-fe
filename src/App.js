@@ -24,6 +24,7 @@ import Categories from "./pages/Categories/Categories";
 import CreateOrEditCategory from "./pages/Categories/CreateOrEditCategory";
 import Payees from "./pages/Payees/Payees";
 import CreateOrEditPayee from "./pages/Payees/CreateOrEditPayee";
+import Settings from "./pages/Settings/Settings";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -102,6 +103,14 @@ const router = createBrowserRouter(
         }
       />
       <Route path="helpContact" element={<HelpContact />} />
+      <Route
+        path="settings"
+        element={
+          <PrivateRoute>
+            <Settings />
+          </PrivateRoute>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Route>
   )
