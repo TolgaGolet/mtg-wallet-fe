@@ -69,12 +69,12 @@ export default function TransactionRow({
             }}
           ></AmountFormatter>
         </Stack>
-        {typeValue === "TRA" && (
-          <Text>
-            {sourceAccount} -&gt; {targetAccount}
-          </Text>
-        )}
       </Group>
+      {typeValue === "TRA" && (
+        <Text>
+          {sourceAccount} -&gt; {targetAccount}
+        </Text>
+      )}
     </Card>
   );
 }
