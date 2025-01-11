@@ -3,6 +3,7 @@ import {
   ActionIcon,
   Box,
   Card,
+  Container,
   Group,
   Skeleton,
   Title,
@@ -125,7 +126,7 @@ export default function AccountDetail() {
   };
 
   return (
-    <>
+    <Container size="lg" px={0}>
       <PageTitle isBackButtonVisible={true} value="Account Details" />
       {isAccountDetailsLoading
         ? renderSkeletonAccountDetails()
@@ -142,6 +143,6 @@ export default function AccountDetail() {
         loadedRecentTransactions={recentTransactions}
         transactionId={displayedTransactionId}
       ></TransactionModal>
-    </>
+    </Container>
   );
 }

@@ -25,6 +25,7 @@ import CreateOrEditCategory from "./pages/Categories/CreateOrEditCategory";
 import Payees from "./pages/Payees/Payees";
 import CreateOrEditPayee from "./pages/Payees/CreateOrEditPayee";
 import Transactions from "./pages/Transactions/Transactions";
+import ScrollToTop from "./utils/ScrollToTop";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -32,6 +33,7 @@ const router = createBrowserRouter(
       path="/"
       element={
         <AuthProvider>
+          <ScrollToTop />
           <RootLayout />
         </AuthProvider>
       }
