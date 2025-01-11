@@ -23,6 +23,7 @@ import { modals } from "@mantine/modals";
 import useAxios from "../../utils/useAxios";
 import { useDebouncedValue } from "@mantine/hooks";
 import AmountInput from "../../components/AmountInput";
+import { useNavigate } from "react-router-dom";
 
 export default function TransactionModal({
   opened,
@@ -31,6 +32,7 @@ export default function TransactionModal({
   transactionId,
 }) {
   const callApi = useAxios();
+  const navigate = useNavigate();
   const theme = useMantineTheme();
   let [isLoading, setIsLoading] = useState(true);
   let [typeValue, setTypeValue] = useState("EXP");
@@ -562,8 +564,9 @@ export default function TransactionModal({
                         href="/accounts/create"
                         onClick={(e) => {
                           e.preventDefault();
-                          window.location.href =
-                            "/accounts/create-or-edit/create";
+                          navigate("/accounts/create-or-edit/create", {
+                            replace: false,
+                          });
                         }}
                       >
                         Create a new account
