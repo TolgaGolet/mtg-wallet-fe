@@ -57,11 +57,6 @@ export default function TransactionRow({
           <Text>
             {parentCategory ? category + " (" + parentCategory + ")" : category}
           </Text>
-          {typeValue === "TRA" && (
-            <Text>
-              {sourceAccount} -&gt; {targetAccount}
-            </Text>
-          )}
         </Box>
         <Stack align="flex-end" justify="flex-start" gap="xs">
           <Text>{formattedDateTime}</Text>
@@ -74,6 +69,11 @@ export default function TransactionRow({
             }}
           ></AmountFormatter>
         </Stack>
+        {typeValue === "TRA" && (
+          <Text>
+            {sourceAccount} -&gt; {targetAccount}
+          </Text>
+        )}
       </Group>
     </Card>
   );

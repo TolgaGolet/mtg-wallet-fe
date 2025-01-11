@@ -12,6 +12,8 @@ import {
   UnstyledButton,
   useMantineTheme,
   Container,
+  Stack,
+  Divider,
 } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../../context/AuthContext";
@@ -103,11 +105,13 @@ export default function Home() {
       onClick: () => {},
     },
     {
-      title: "Transactions (Soon)",
+      title: "Transactions",
       icon: IconRepeat,
       color: "teal",
-      style: { color: theme.colors.gray[7] },
-      onClick: () => {},
+      style: {},
+      onClick: () => {
+        navigate(`/transactions/`, { replace: false });
+      },
     },
     // { title: "Receipts", icon: IconReceipt, color: "green", style: {}, onClick: () => {} },
     // { title: "Taxes", icon: IconReceiptTax, color: "pink", style: {}, onClick: () => {} },
@@ -354,6 +358,18 @@ export default function Home() {
     setIsTransactionModelOpened(true);
   };
 
+  const getDateGroup = (dateTime) => {
+    const today = new Date();
+    const date = new Date(dateTime);
+    const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays <= 7) return "Last Week";
+    if (diffDays <= 30) return "Last Month";
+    return "Older";
+  };
+
   const renderRecentTransactions = () => {
     if (!recentTransactions || recentTransactions.length === 0) {
       return (
@@ -362,21 +378,52 @@ export default function Home() {
         </Text>
       );
     }
-    return recentTransactions.map((transaction) => (
-      <TransactionRow
-        key={transaction.id}
-        payee={transaction.payee?.name}
-        category={transaction.payee?.category?.name}
-        parentCategory={transaction.payee?.category?.parentCategory?.name}
-        typeValue={transaction.type?.value}
-        amount={transaction.amount}
-        currencyValue={transaction.sourceAccount?.currency?.value}
-        dateTime={transaction.dateTime}
-        sourceAccount={transaction.sourceAccount?.name}
-        targetAccount={transaction.targetAccount?.name}
-        onClick={() => onClickTransactionRow(transaction.id)}
-      ></TransactionRow>
-    ));
+
+    const groupedTransactions = recentTransactions.reduce(
+      (groups, transaction) => {
+        const group = getDateGroup(transaction.dateTime);
+        if (!groups[group]) {
+          groups[group] = [];
+        }
+        groups[group].push(transaction);
+        return groups;
+      },
+      {}
+    );
+
+    return (
+      <Stack>
+        {Object.entries(groupedTransactions).map(([group, transactions]) => (
+          <React.Fragment key={group}>
+            <Divider
+              label={
+                <Text fw={250} size="sm">
+                  {group}
+                </Text>
+              }
+              labelPosition="left"
+            />
+            {transactions.map((transaction) => (
+              <TransactionRow
+                key={transaction.id}
+                payee={transaction.payee?.name}
+                category={transaction.payee?.category?.name}
+                parentCategory={
+                  transaction.payee?.category?.parentCategory?.name
+                }
+                typeValue={transaction.type?.value}
+                amount={transaction.amount}
+                currencyValue={transaction.sourceAccount?.currency?.value}
+                dateTime={transaction.dateTime}
+                sourceAccount={transaction.sourceAccount?.name}
+                targetAccount={transaction.targetAccount?.name}
+                onClick={() => onClickTransactionRow(transaction.id)}
+              />
+            ))}
+          </React.Fragment>
+        ))}
+      </Stack>
+    );
   };
 
   return (
@@ -386,7 +433,12 @@ export default function Home() {
       {renderShortcuts()}
       <Group justify="space-between" mb="md" mt="md">
         <Title order={3}>Recent Transactions</Title>
-        <Text size="sm" c="dimmed">
+        <Text
+          size="sm"
+          c="dimmed"
+          className={classes.seeAllButton}
+          onClick={() => navigate("/transactions", { replace: false })}
+        >
           See All -&gt;
         </Text>
       </Group>

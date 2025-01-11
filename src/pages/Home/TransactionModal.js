@@ -308,6 +308,10 @@ export default function TransactionModal({
     return Array.from(uniqueRecentTransactions);
   };
 
+  const onClickSuggestedAccount = (accountId) => {
+    form.setFieldValue("sourceAccountId", accountId + "");
+  };
+
   const onClickSuggestedPayee = (payeeId) => {
     if (!payeeList.find((p) => p.id + "" === payeeId + "")) {
       let request = { id: payeeId };
@@ -319,6 +323,32 @@ export default function TransactionModal({
         });
     }
     form.setFieldValue("payeeId", payeeId + "");
+  };
+
+  const renderSuggestedAccounts = () => {
+    const uniqueAccounts = new Set();
+    return getUniqueRecentTransactionsArray()
+      .filter((transaction) => {
+        const accountId = transaction.sourceAccount?.id;
+        if (accountId && !uniqueAccounts.has(accountId)) {
+          uniqueAccounts.add(accountId);
+          return true;
+        }
+        return false;
+      })
+      .slice(0, 2)
+      .map((transaction) => (
+        <Badge
+          key={transaction.id}
+          variant="light"
+          mt="xs"
+          mr={rem(5)}
+          onClick={() => onClickSuggestedAccount(transaction.sourceAccount?.id)}
+          style={{ cursor: "pointer" }}
+        >
+          {transaction.sourceAccount?.name}
+        </Badge>
+      ));
   };
 
   const renderSuggestedPayees = () => {
@@ -339,10 +369,29 @@ export default function TransactionModal({
       ));
   };
 
+  const onClose = () => {
+    modals.openConfirmModal({
+      title: "Unsaved Changes",
+      centered: true,
+      children: (
+        <Text size="sm">
+          Any unsaved changes will be lost. Are you sure you want to close this
+          form?
+        </Text>
+      ),
+      labels: { confirm: "Yes", cancel: "No" },
+      confirmProps: { color: "red" },
+      onCancel: () => {},
+      onConfirm: () => {
+        close();
+      },
+    });
+  };
+
   return (
     <Modal
       opened={opened}
-      onClose={close}
+      onClose={onClose}
       title={isEdit ? "Edit Transaction" : "Create Transaction"}
       centered
       transitionProps={{ transition: "fade", duration: 200 }}
@@ -524,6 +573,7 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
+              {renderSuggestedAccounts()}
               {typeValue === "TRA" && (
                 <Select
                   label="Target Account"

@@ -16,6 +16,7 @@ import FieldTextData from "../../components/FieldTextData";
 import { IconPencil } from "@tabler/icons-react";
 import TransactionRow from "../../components/TransactionRow";
 import PageTitle from "../../components/PageTitle";
+import TransactionModal from "../Home/TransactionModal";
 
 export default function AccountDetail() {
   const { accountId } = useParams();
@@ -26,6 +27,8 @@ export default function AccountDetail() {
     useState(true);
   let [accountDetails, setAccountDetails] = useState({});
   let [recentTransactions, setRecentTransactions] = useState([]);
+  let [isTransactionModelOpened, setIsTransactionModelOpened] = useState(false);
+  let [displayedTransactionId, setDisplayedTransactionId] = useState(null);
 
   useEffect(() => {
     callApi.post("account/search", { id: accountId }).then((response) => {
@@ -111,8 +114,14 @@ export default function AccountDetail() {
         dateTime={transaction.dateTime}
         sourceAccount={transaction.sourceAccount?.name}
         targetAccount={transaction.targetAccount?.name}
+        onClick={() => onClickTransactionRow(transaction.id)}
       ></TransactionRow>
     ));
+  };
+
+  const onClickTransactionRow = (id) => {
+    setDisplayedTransactionId(id);
+    setIsTransactionModelOpened(true);
   };
 
   return (
@@ -127,6 +136,12 @@ export default function AccountDetail() {
       {isLatestTransactionsLoading
         ? renderSkeletonRecentTransactions()
         : renderRecentTransactions()}
+      <TransactionModal
+        opened={isTransactionModelOpened}
+        close={() => setIsTransactionModelOpened(false)}
+        loadedRecentTransactions={recentTransactions}
+        transactionId={displayedTransactionId}
+      ></TransactionModal>
     </>
   );
 }
