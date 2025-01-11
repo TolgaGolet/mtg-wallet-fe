@@ -12,7 +12,7 @@ import classes from "./HelpContact.module.css";
 
 export default function HelpContact() {
   const onClickMail = () => {
-    window.location.href = "mailto:m.tolgaglt@gmail.com";
+    window.location.href = "mailto:mtgwallet@gmail.com";
   };
 
   return (
@@ -27,7 +27,7 @@ export default function HelpContact() {
             I forgot my password. How can I reset it?
           </Accordion.Control>
           <Accordion.Panel>
-            {"Contact us via email: m.tolgaglt@gmail.com"}
+            {"Contact us via email: mtgwallet@gmail.com"}
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>
@@ -50,7 +50,7 @@ export default function HelpContact() {
               onClick={onClickMail}
               mt={15}
             >
-              m.tolgaglt@gmail.com
+              mtgwallet@gmail.com
             </Button>
           </div>
         </Grid.Col>
