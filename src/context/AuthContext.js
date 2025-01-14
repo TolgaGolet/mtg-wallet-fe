@@ -2,7 +2,16 @@ import { createContext, useState, useEffect, useMemo } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import showNotification from "../components/showNotification";
-import { useMantineColorScheme } from "@mantine/core";
+import {
+  Button,
+  Center,
+  Group,
+  rem,
+  Text,
+  useMantineColorScheme,
+} from "@mantine/core";
+import { modals } from "@mantine/modals";
+import { IconCheck } from "@tabler/icons-react";
 
 const AuthContext = createContext();
 const authTokensLocalStorageKey =
@@ -44,10 +53,14 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
       showNotification("You have been successfully signed in", "success");
-    } else if (response?.status === 401) {
+    } else if (response?.status === 401 || response?.status === 403) {
       let message = await response.text();
       showNotification(message, "error");
-      setErrorData({ isErrorState: true, message: message });
+      setErrorData({
+        isErrorState: true,
+        isEmailVerificationRequired: message.includes("Email is not verified."),
+        message: message,
+      });
     } else if (response?.status === 429) {
       showNotification(
         "Too many requests. Try again after a few minutes",
@@ -106,13 +119,44 @@ export const AuthProvider = ({ children }) => {
     );
     if (response?.status === 200) {
       let data = await response?.json();
-      let accessToken = data?.accessToken;
-      setAuthTokens(data);
-      setUser(jwt_decode(accessToken));
-      localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
-      navigate("/", { replace: true });
-      createDefaults(accessToken);
-      showNotification("You have been successfully signed up", "success");
+      createDefaults(data?.accessToken);
+      modals.open({
+        title: "Registration successful",
+        centered: true,
+        children: (
+          <>
+            <Center>
+              <IconCheck
+                style={{
+                  width: rem(125),
+                  height: rem(125),
+                  color: "teal",
+                }}
+              />
+            </Center>
+            <Text>
+              We have sent an email verification link to your email inbox.
+              Please click the link to verify your email address. Then you will
+              be able to login.
+            </Text>
+            <Group position="apart" justify="flex-end">
+              <Button
+                onClick={() => {
+                  modals.closeAll();
+                  navigate("/", { replace: true });
+                }}
+                mt="md"
+              >
+                Okay
+              </Button>
+            </Group>
+          </>
+        ),
+        withCloseButton: false,
+        closeOnClickOutside: false,
+        closeOnEscape: false,
+        size: "lg",
+      });
     } else if (response?.status === 409) {
       let message = await response.text();
       showNotification(message, "error");

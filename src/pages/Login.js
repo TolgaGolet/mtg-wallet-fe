@@ -11,9 +11,15 @@ import {
   Button,
   FocusTrap,
   Alert,
+  Text,
+  Center,
+  rem,
 } from "@mantine/core";
 import { useForm, hasLength } from "@mantine/form";
-import { IconX } from "@tabler/icons-react";
+import { IconCheck, IconX } from "@tabler/icons-react";
+import { useDisclosure } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
+import { modals } from "@mantine/modals";
 
 const Login = () => {
   let { loginUser, user } = useContext(AuthContext);
@@ -21,8 +27,11 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorData, setErrorData] = useState({
     isErrorState: false,
+    isEmailVerificationRequired: false,
     message: "",
   });
+  const [showResendButton, { toggle: toggleResendButton }] =
+    useDisclosure(false);
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
@@ -52,14 +61,101 @@ const Login = () => {
     }
   }, [user, navigate]);
 
+  const handleResendClick = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_RESEND_VERIFY_EMAIL_URL}/${form.values.username}`,
+        {
+          method: "POST",
+        }
+      );
+      if (response.ok) {
+        modals.open({
+          title: "Verification code resent",
+          centered: true,
+          children: (
+            <>
+              <Center>
+                <IconCheck
+                  style={{
+                    width: rem(125),
+                    height: rem(125),
+                    color: "teal",
+                  }}
+                />
+              </Center>
+              <Text>
+                We have sent an email verification link to your email inbox.
+                Please click the link to verify your email address. Then you
+                will be able to login.
+              </Text>
+              <Group position="apart" justify="flex-end">
+                <Button
+                  onClick={() => {
+                    modals.closeAll();
+                    navigate("/", { replace: true });
+                  }}
+                  mt="md"
+                >
+                  Okay
+                </Button>
+              </Group>
+            </>
+          ),
+          withCloseButton: false,
+          closeOnClickOutside: false,
+          closeOnEscape: false,
+          size: "lg",
+        });
+      } else {
+        const message = await response.text();
+        showNotification(message, "error");
+      }
+    } catch (error) {
+      showNotification("Something went wrong! " + error.toString(), "error");
+    }
+  };
+
+  const renderError = () => {
+    if (!errorData.isEmailVerificationRequired) {
+      return (
+        <Alert variant="light" color="red" title="Error" icon={<IconX />}>
+          {errorData.message}
+        </Alert>
+      );
+    } else {
+      return (
+        <Alert variant="light" color="red" title="Error" icon={<IconX />}>
+          {errorData.message}
+          <Text
+            size="sm"
+            style={{ cursor: "pointer" }}
+            c={"blue"}
+            onClick={toggleResendButton}
+            mt="md"
+            mb="md"
+          >
+            Didn't receive a verification link?
+          </Text>
+          {showResendButton && (
+            <Button
+              variant="light"
+              onClick={handleResendClick}
+              loading={isLoading}
+            >
+              Resend
+            </Button>
+          )}
+        </Alert>
+      );
+    }
+  };
+
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        {errorData.isErrorState ? (
-          <Alert variant="light" color="red" title="Error" icon={<IconX />}>
-            {errorData.message}
-          </Alert>
-        ) : null}
+        {errorData.isErrorState ? renderError() : null}
         <FocusTrap active={true}>
           <form
             onSubmit={form.onSubmit((e) => {
