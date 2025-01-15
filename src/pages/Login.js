@@ -196,6 +196,15 @@ const Login = () => {
                 Don't have an account?
               </Anchor>
             </Group>
+            <Group justify="space-between" mt="xs">
+              <Anchor
+                onClick={() => navigate("/forgot-password", { replace: false })}
+                component="button"
+                size="sm"
+              >
+                Forgot password?
+              </Anchor>
+            </Group>
           </form>
         </FocusTrap>
       </Paper>
