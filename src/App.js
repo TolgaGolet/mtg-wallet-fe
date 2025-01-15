@@ -27,6 +27,8 @@ import CreateOrEditPayee from "./pages/Payees/CreateOrEditPayee";
 import Transactions from "./pages/Transactions/Transactions";
 import ScrollToTop from "./utils/ScrollToTop";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -49,6 +51,8 @@ const router = createBrowserRouter(
       />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/verify-email/:token" element={<VerifyEmail />} />
       <Route
         path="accounts"
