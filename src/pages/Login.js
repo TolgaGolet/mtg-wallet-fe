@@ -15,7 +15,7 @@ import {
   Center,
   rem,
 } from "@mantine/core";
-import { useForm, hasLength } from "@mantine/form";
+import { useForm } from "@mantine/form";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
@@ -48,10 +48,20 @@ const Login = () => {
         val?.length > 15 || val?.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
           ? "Username must be 3-15 characters and contain only letters and numbers"
           : null,
-      password: hasLength(
-        { min: 3, max: 30 },
-        "Password must be 3-30 characters long"
-      ),
+      password: (val) => {
+        if (!val) {
+          return "Password is required";
+        }
+        const length = val.length >= 8 && val.length <= 64;
+        const uppercase = /[A-Z]/.test(val);
+        const lowercase = /[a-z]/.test(val);
+        const number = /\d/.test(val);
+        const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+        if (!length || !uppercase || !lowercase || !number || !special) {
+          return "Password must be 8-64 characters long and contain at least one uppercase letter, one lowercase letter, one digit and one special character";
+        }
+        return null;
+      },
     },
   });
 
