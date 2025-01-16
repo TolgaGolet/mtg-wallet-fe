@@ -12,9 +12,12 @@ import {
   Text,
   Group,
   PasswordInput,
+  Progress,
+  List,
+  ThemeIcon,
 } from "@mantine/core";
-import { hasLength, useForm } from "@mantine/form";
-import { IconCheck } from "@tabler/icons-react";
+import { useForm } from "@mantine/form";
+import { IconCheck, IconX } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import showNotification from "../components/showNotification";
 
@@ -23,17 +26,48 @@ const ResetPassword = () => {
   const { token } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+  });
   const form = useForm({
-    validateInputOnBlur: true,
+    validateInputOnChange: true,
     initialValues: {
       password: "",
     },
 
     validate: {
-      password: hasLength(
-        { min: 3, max: 30 },
-        "Password must be 3-30 characters long"
-      ),
+      password: (val) => {
+        if (!val) {
+          setPasswordRequirements({
+            length: false,
+            uppercase: false,
+            lowercase: false,
+            number: false,
+            special: false,
+          });
+          return "Password is required";
+        }
+        const length = val.length >= 8 && val.length <= 64;
+        const uppercase = /[A-Z]/.test(val);
+        const lowercase = /[a-z]/.test(val);
+        const number = /\d/.test(val);
+        const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+        setPasswordRequirements({
+          length,
+          uppercase,
+          lowercase,
+          number,
+          special,
+        });
+        if (!length || !uppercase || !lowercase || !number || !special) {
+          return "Password does not meet requirements";
+        }
+        return null;
+      },
     },
   });
 
@@ -42,6 +76,32 @@ const ResetPassword = () => {
       navigate("/", { replace: true });
     }
   }, [user, navigate]);
+
+  const requirementsList = [
+    {
+      label: "8-64 characters long",
+      isMet: passwordRequirements.length,
+    },
+    {
+      label: "Contains an uppercase letter",
+      isMet: passwordRequirements.uppercase,
+    },
+    {
+      label: "Contains a lowercase letter",
+      isMet: passwordRequirements.lowercase,
+    },
+    {
+      label: "Contains a number",
+      isMet: passwordRequirements.number,
+    },
+    {
+      label: "Contains a special character",
+      isMet: passwordRequirements.special,
+    },
+  ];
+
+  const progressValue =
+    (Object.values(passwordRequirements).filter(Boolean).length / 5) * 100;
 
   const handleSubmit = async (e) => {
     try {
@@ -125,6 +185,36 @@ const ResetPassword = () => {
               required
               size="md"
             />
+            <Progress
+              value={progressValue}
+              size="sm"
+              color={progressValue === 100 ? "green" : "blue"}
+              mt="xs"
+            />
+            <List mt="xs" type="unordered">
+              {requirementsList.map((req) => (
+                <List.Item
+                  key={req.label}
+                  icon={
+                    <ThemeIcon
+                      color={req.isMet ? "green" : "red"}
+                      size={16}
+                      radius="xl"
+                    >
+                      {req.isMet ? (
+                        <IconCheck size={10} />
+                      ) : (
+                        <IconX size={10} />
+                      )}
+                    </ThemeIcon>
+                  }
+                >
+                  <Text size="sm" c={req.isMet ? "gray" : "red"}>
+                    {req.label}
+                  </Text>
+                </List.Item>
+              ))}
+            </List>
             <Button
               type="submit"
               loading={isLoading}

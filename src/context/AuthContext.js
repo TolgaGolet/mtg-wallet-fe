@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
       navigate("/", { replace: true });
       showNotification("You have been successfully signed in", "success");
+      createDefaults(data?.accessToken);
     } else if (response?.status === 401 || response?.status === 403) {
       let message = await response.text();
       showNotification(message, "error");
@@ -118,8 +119,6 @@ export const AuthProvider = ({ children }) => {
       }
     );
     if (response?.status === 200) {
-      let data = await response?.json();
-      createDefaults(data?.accessToken);
       modals.open({
         title: "Registration successful",
         centered: true,
