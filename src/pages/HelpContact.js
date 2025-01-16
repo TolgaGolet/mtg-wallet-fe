@@ -27,7 +27,9 @@ export default function HelpContact() {
             I forgot my password. How can I reset it?
           </Accordion.Control>
           <Accordion.Panel>
-            {"Contact us via email: mtgwallet@gmail.com"}
+            {
+              "You can reset your password by clicking the 'Forgot Password?' link on the login page."
+            }
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>

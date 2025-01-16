@@ -38,7 +38,7 @@ export default function AccountDetail() {
       callApi
         .post(
           "transaction/search",
-          { sourceAccountId: accountId },
+          { sourceAccountId: accountId, targetAccountId: accountId },
           { params: { pageNo: 0 } }
         )
         .then((response) => {
