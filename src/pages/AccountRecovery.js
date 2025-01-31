@@ -12,29 +12,43 @@ import {
   Title,
   Text,
   Group,
+  PasswordInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconCheck } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 import showNotification from "../components/showNotification";
 
-const ForgotPassword = () => {
+const AccountRecovery = () => {
   let { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
-      email: "",
+      username: "",
+      password: "",
     },
 
     validate: {
-      email: (val) =>
-        val?.length > 100 ||
-        val?.length < 3 ||
-        !/^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$/.test(val)
-          ? "Email must be 3-100 characters and should be valid"
+      username: (val) =>
+        val?.length > 15 || val?.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
+          ? "Username must be 3-15 characters and contain only letters and numbers"
           : null,
+      password: (val) => {
+        if (!val) {
+          return "Password is required";
+        }
+        const length = val.length >= 8 && val.length <= 64;
+        const uppercase = /[A-Z]/.test(val);
+        const lowercase = /[a-z]/.test(val);
+        const number = /\d/.test(val);
+        const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+        if (!length || !uppercase || !lowercase || !number || !special) {
+          return "Password must be 8-64 characters long and contain at least one uppercase letter, one lowercase letter, one digit and one special character";
+        }
+        return null;
+      },
     },
   });
 
@@ -48,7 +62,7 @@ const ForgotPassword = () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}auth/password-reset/request`,
+        `${process.env.REACT_APP_API_BASE_URL}auth/account-recovery/request`,
         {
           method: "POST",
           headers: {
@@ -74,8 +88,10 @@ const ForgotPassword = () => {
                 />
               </Center>
               <Text>
-                We have sent a link for resetting your password to your email
-                inbox. Please click the link to reset your password.
+                We have sent a link for recovering your account to your email
+                inbox. Please click the link to recover your account. This
+                action will disable your two factor authentication. You should
+                enable this feature once you login for your security.
               </Text>
               <Group position="apart" justify="flex-end">
                 <Button
@@ -110,24 +126,27 @@ const ForgotPassword = () => {
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
         <Title order={2} mb="md">
-          Forgot Password
+          Recover Account
         </Title>
         <Text mb="md">
-          Enter your email address and we will send you a link to reset your
-          password.
+          Enter your credentials and we will send you a link to recover your
+          account.
         </Text>
         <FocusTrap active={true}>
-          <form
-            onSubmit={form.onSubmit((e) => {
-              setIsLoading(true);
-              handleSubmit(e);
-            })}
-          >
+          <form onSubmit={form.onSubmit((e) => handleSubmit(e))}>
             <TextInput
-              label="Email"
-              placeholder="Email"
-              {...form.getInputProps("email")}
+              label="Username"
+              placeholder="Username"
+              {...form.getInputProps("username")}
               required
+              size="md"
+            />
+            <PasswordInput
+              label="Password"
+              placeholder="Password"
+              {...form.getInputProps("password")}
+              required
+              mt="md"
               size="md"
             />
             <Button
@@ -146,4 +165,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
+export default AccountRecovery;

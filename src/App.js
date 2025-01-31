@@ -29,6 +29,9 @@ import ScrollToTop from "./utils/ScrollToTop";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Settings from "./pages/Settings/Settings";
+import AccountRecovery from "./pages/AccountRecovery";
+import RecoverAccount from "./pages/RecoverAccount";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -54,6 +57,8 @@ const router = createBrowserRouter(
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/verify-email/:token" element={<VerifyEmail />} />
+      <Route path="/account-recovery" element={<AccountRecovery />} />
+      <Route path="/recover-account/:token" element={<RecoverAccount />} />
       <Route
         path="accounts"
         element={
@@ -116,6 +121,14 @@ const router = createBrowserRouter(
         element={
           <PrivateRoute>
             <Transactions />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="settings"
+        element={
+          <PrivateRoute>
+            <Settings />
           </PrivateRoute>
         }
       />

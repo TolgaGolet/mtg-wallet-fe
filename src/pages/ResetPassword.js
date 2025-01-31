@@ -37,6 +37,7 @@ const ResetPassword = () => {
     validateInputOnChange: true,
     initialValues: {
       password: "",
+      confirmPassword: "",
     },
 
     validate: {
@@ -65,6 +66,12 @@ const ResetPassword = () => {
         });
         if (!length || !uppercase || !lowercase || !number || !special) {
           return "Password does not meet requirements";
+        }
+        return null;
+      },
+      confirmPassword: (val, { password }) => {
+        if (val !== password) {
+          return "Passwords do not match";
         }
         return null;
       },
@@ -113,7 +120,7 @@ const ResetPassword = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(e),
+          body: JSON.stringify({ password: e.password }),
         }
       );
       if (response?.status === 200) {
@@ -182,6 +189,13 @@ const ResetPassword = () => {
               label="Password"
               placeholder="Password"
               {...form.getInputProps("password")}
+              required
+              size="md"
+            />
+            <PasswordInput
+              label="Confirm password"
+              placeholder="Confirm password"
+              {...form.getInputProps("confirmPassword")}
               required
               size="md"
             />

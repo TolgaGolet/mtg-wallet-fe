@@ -14,6 +14,7 @@ import {
   Text,
   Center,
   rem,
+  Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { IconCheck, IconX } from "@tabler/icons-react";
@@ -30,6 +31,7 @@ const Login = () => {
     isEmailVerificationRequired: false,
     message: "",
   });
+  const [isTotpRequired, setIsTotpRequired] = useState(false);
   const [showResendButton, { toggle: toggleResendButton }] =
     useDisclosure(false);
   const form = useForm({
@@ -40,10 +42,6 @@ const Login = () => {
     },
 
     validate: {
-      // username: (val) =>
-      //   val?.length > 15 || val?.length < 3
-      //     ? "Name must be 3-15 characters long"
-      //     : null,
       username: (val) =>
         val?.length > 15 || val?.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
           ? "Username must be 3-15 characters and contain only letters and numbers"
@@ -170,51 +168,91 @@ const Login = () => {
           <form
             onSubmit={form.onSubmit((e) => {
               setIsLoading(true);
-              loginUser(e, setIsLoading, setErrorData);
+              loginUser(e, setIsLoading, setErrorData, setIsTotpRequired);
             })}
           >
-            <TextInput
-              label="Username"
-              placeholder="Username"
-              {...form.getInputProps("username")}
-              required
-              size="md"
-            />
-            <PasswordInput
-              label="Password"
-              placeholder="Password"
-              {...form.getInputProps("password")}
-              required
-              mt="md"
-              size="md"
-            />
+            {!isTotpRequired ? (
+              <>
+                <TextInput
+                  label="Username"
+                  placeholder="Username"
+                  {...form.getInputProps("username")}
+                  required
+                  size="md"
+                />
+                <PasswordInput
+                  label="Password"
+                  placeholder="Password"
+                  {...form.getInputProps("password")}
+                  required
+                  mt="md"
+                  size="md"
+                />
+              </>
+            ) : (
+              <>
+                <Title order={3} mb="md">
+                  Two-Factor Authentication
+                </Title>
+                <TextInput
+                  label="Verification code"
+                  placeholder="Verification code"
+                  {...form.getInputProps("verificationCode")}
+                  required
+                  size="md"
+                  maxLength={6}
+                  autoFocus
+                />
+              </>
+            )}
             <Button
               type="submit"
               loading={isLoading}
+              disabled={
+                isTotpRequired && form.values.verificationCode?.length !== 6
+              }
               fullWidth
               mt="xl"
               size="md"
             >
               Sign in
             </Button>
-            <Group justify="space-between" mt="lg">
-              <Anchor
-                onClick={() => navigate("/register", { replace: true })}
-                component="button"
-                size="sm"
-              >
-                Don't have an account?
-              </Anchor>
-            </Group>
-            <Group justify="space-between" mt="xs">
-              <Anchor
-                onClick={() => navigate("/forgot-password", { replace: false })}
-                component="button"
-                size="sm"
-              >
-                Forgot password?
-              </Anchor>
-            </Group>
+            {!isTotpRequired ? (
+              <>
+                <Group justify="space-between" mt="lg">
+                  <Anchor
+                    onClick={() => navigate("/register", { replace: true })}
+                    component="button"
+                    size="sm"
+                  >
+                    Don't have an account?
+                  </Anchor>
+                </Group>
+                <Group justify="space-between" mt="xs">
+                  <Anchor
+                    onClick={() =>
+                      navigate("/forgot-password", { replace: false })
+                    }
+                    component="button"
+                    size="sm"
+                  >
+                    Forgot password?
+                  </Anchor>
+                </Group>
+              </>
+            ) : (
+              <Group justify="space-between" mt="lg">
+                <Anchor
+                  onClick={() =>
+                    navigate("/account-recovery", { replace: false })
+                  }
+                  component="button"
+                  size="sm"
+                >
+                  Don't have access to the authenticator?
+                </Anchor>
+              </Group>
+            )}
           </form>
         </FocusTrap>
       </Paper>
