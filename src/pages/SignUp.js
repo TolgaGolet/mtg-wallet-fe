@@ -41,6 +41,7 @@ const SignUp = () => {
       name: "",
       surname: "",
       password: "",
+      confirmPassword: "",
     },
     validate: {
       username: (val) =>
@@ -83,6 +84,12 @@ const SignUp = () => {
         });
         if (!length || !uppercase || !lowercase || !number || !special) {
           return "Password does not meet requirements";
+        }
+        return null;
+      },
+      confirmPassword: (val, { password }) => {
+        if (val !== password) {
+          return "Passwords do not match";
         }
         return null;
       },
@@ -167,6 +174,13 @@ const SignUp = () => {
               label="Password"
               placeholder="Password"
               {...form.getInputProps("password")}
+              required
+              size="md"
+            />
+            <PasswordInput
+              label="Confirm password"
+              placeholder="Confirm password"
+              {...form.getInputProps("confirmPassword")}
               required
               size="md"
             />

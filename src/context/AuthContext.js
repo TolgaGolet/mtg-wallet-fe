@@ -32,28 +32,43 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const { clearColorScheme } = useMantineColorScheme();
 
-  const loginUser = async (e, setIsLoading, setErrorData) => {
-    let response = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: e?.username,
-          password: e?.password,
-        }),
-      }
-    );
+  const loginUser = async (
+    e,
+    setIsLoading,
+    setErrorData,
+    setIsTotpRequired
+  ) => {
+    let loginUrl = !e?.verificationCode
+      ? `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`
+      : `${process.env.REACT_APP_API_BASE_URL}auth/totp/verify`;
+    let response = await fetch(loginUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: e?.username,
+        password: e?.password,
+        verificationCode: e?.verificationCode,
+      }),
+    });
     if (response?.status === 200) {
       let data = await response?.json();
-      setAuthTokens(data);
-      setUser(jwt_decode(data?.accessToken));
-      localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
-      navigate("/", { replace: true });
-      showNotification("You have been successfully signed in", "success");
-      createDefaults(data?.accessToken);
+      if (data?.totpRequired) {
+        setErrorData({
+          isErrorState: false,
+          isEmailVerificationRequired: false,
+          message: "",
+        });
+        setIsTotpRequired(true);
+      } else {
+        setAuthTokens(data);
+        setUser(jwt_decode(data?.accessToken));
+        localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
+        navigate("/", { replace: true });
+        showNotification("You have been successfully signed in", "success");
+        createDefaults(data?.accessToken);
+      }
     } else if (response?.status === 401 || response?.status === 403) {
       let message = await response.text();
       showNotification(message, "error");

@@ -85,6 +85,14 @@ export default function RootLayout() {
                     Categories
                   </UnstyledButton>
                 ) : null}
+                {user ? (
+                  <UnstyledButton
+                    onClick={() => navigate("/settings", { replace: false })}
+                    className={classes.control}
+                  >
+                    Settings
+                  </UnstyledButton>
+                ) : null}
                 <UnstyledButton
                   onClick={() => navigate("/helpContact", { replace: false })}
                   className={classes.control}
@@ -182,6 +190,19 @@ export default function RootLayout() {
               ml={mobileButtonMargin}
             >
               Categories
+            </UnstyledButton>
+          ) : null}
+          {user ? (
+            <UnstyledButton
+              onClick={() => {
+                navigate("/settings", { replace: false });
+                toggle();
+              }}
+              className={classes.control}
+              mb={mobileButtonMargin}
+              ml={mobileButtonMargin}
+            >
+              Settings
             </UnstyledButton>
           ) : null}
           <UnstyledButton
