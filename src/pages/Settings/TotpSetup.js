@@ -30,6 +30,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
   const [verifying, setVerifying] = useState(false);
   const callApi = useAxios();
   const [disableCode, setDisableCode] = useState("");
+  const [validationError, setValidationError] = useState(null);
 
   useEffect(() => {
     if (twoFactorEnabled) {
@@ -74,6 +75,20 @@ export function TotpSetup({ close, twoFactorEnabled }) {
       });
   };
 
+  const validateVerificationCode = (val) => {
+    if (!/^\d{6}$/.test(val)) {
+      return "Verification code must be a 6-digit number";
+    }
+    return null;
+  };
+
+  const validateDisableCode = (val) => {
+    if (!/^\d{6}$/.test(val)) {
+      return "Disable code must be a 6-digit number";
+    }
+    return null;
+  };
+
   if (twoFactorEnabled) {
     return (
       <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -98,10 +113,16 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                 label="Current 2FA Code"
                 placeholder="Enter your 6-digit code"
                 value={disableCode}
-                onChange={(event) => setDisableCode(event.currentTarget.value)}
+                onChange={(event) => {
+                  let value = event.currentTarget.value;
+                  setDisableCode(value);
+                  const error = validateDisableCode(value);
+                  setValidationError(error);
+                }}
                 maxLength={6}
                 required
                 autoFocus
+                error={validationError}
               />
 
               <Group position="center">
@@ -180,18 +201,24 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                     label="Verification Code"
                     placeholder="Enter the 6-digit code"
                     value={verificationCode}
-                    onChange={(event) =>
-                      setVerificationCode(event.currentTarget.value)
-                    }
+                    onChange={(event) => {
+                      let value = event.currentTarget.value;
+                      setVerificationCode(value);
+                      const error = validateVerificationCode(value);
+                      setValidationError(error);
+                    }}
                     maxLength={6}
                     autoFocus
+                    error={validationError}
                   />
 
                   <Group position="apart">
                     <Button
                       type="submit"
                       loading={verifying}
-                      disabled={verificationCode.length !== 6}
+                      disabled={
+                        validationError || verificationCode.length !== 6
+                      }
                       style={{ margin: "auto" }}
                       mt="md"
                     >

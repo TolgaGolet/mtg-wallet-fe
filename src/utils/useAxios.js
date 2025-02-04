@@ -104,7 +104,6 @@ const addRequestInterceptor = (
             error?.response?.status === 401
           ) {
             console.error("403 or 401 response received");
-            logoutUser();
           }
           reject(error);
         });
@@ -121,7 +120,6 @@ const addResponseInterceptor = (axiosInstance, logoutUser) => {
       showNotification(error?.response?.data, "error");
       if (error?.response?.status === 403 || error?.response?.status === 401) {
         console.error("403 or 401 response received");
-        logoutUser();
       } else if (error?.response?.status === 429) {
         showNotification(
           "Too many requests. Try again after a few minutes",
