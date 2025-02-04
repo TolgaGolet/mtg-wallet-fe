@@ -39,6 +39,7 @@ const Login = () => {
     initialValues: {
       username: "",
       password: "",
+      verificationCode: "",
     },
 
     validate: {
@@ -57,6 +58,16 @@ const Login = () => {
         const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
         if (!length || !uppercase || !lowercase || !number || !special) {
           return "Password must be 8-64 characters long and contain at least one uppercase letter, one lowercase letter, one digit and one special character";
+        }
+        return null;
+      },
+      verificationCode: (val) => {
+        if (!isTotpRequired) return null;
+        if (!val) {
+          return "Verification code is required";
+        }
+        if (!/^\d{6}$/.test(val)) {
+          return "Verification code must be a 6-digit number";
         }
         return null;
       },
@@ -160,6 +171,20 @@ const Login = () => {
     }
   };
 
+  const formOnSubmit = (e) => {
+    setIsLoading(true);
+    loginUser(e, setIsLoading, setErrorData, setIsTotpRequired);
+  };
+
+  useEffect(() => {
+    if (isTotpRequired && form.values.verificationCode.length === 6) {
+      form.onSubmit((e) => {
+        formOnSubmit(e);
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.values.verificationCode, isTotpRequired]);
+
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
@@ -167,8 +192,7 @@ const Login = () => {
         <FocusTrap active={true}>
           <form
             onSubmit={form.onSubmit((e) => {
-              setIsLoading(true);
-              loginUser(e, setIsLoading, setErrorData, setIsTotpRequired);
+              formOnSubmit(e);
             })}
           >
             {!isTotpRequired ? (
