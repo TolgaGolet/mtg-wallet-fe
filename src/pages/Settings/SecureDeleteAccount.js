@@ -81,6 +81,7 @@ export function SecureDeleteAccount({
             label="Current Password"
             placeholder="Enter your current password"
             {...form.getInputProps("password")}
+            size="md"
           />
 
           {twoFactorEnabled && (
@@ -90,6 +91,7 @@ export function SecureDeleteAccount({
               placeholder="Enter your 6-digit 2FA code"
               maxLength={6}
               {...form.getInputProps("totpCode")}
+              size="md"
             />
           )}
 
@@ -99,10 +101,10 @@ export function SecureDeleteAccount({
           </Text>
 
           <Group position="right" mt="md">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} size="md">
               Cancel
             </Button>
-            <Button type="submit" color="red" loading={isLoading}>
+            <Button type="submit" color="red" loading={isLoading} size="md">
               Delete Account
             </Button>
           </Group>
