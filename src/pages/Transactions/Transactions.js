@@ -114,6 +114,7 @@ export default function Transactions() {
             {...form.getInputProps("transactionType")}
             searchable
             disabled={isLoading}
+            size="md"
           />
           <TextInput
             label="Payee"
@@ -121,6 +122,7 @@ export default function Transactions() {
             maxLength={50}
             {...form.getInputProps("payeeName")}
             disabled={isLoading}
+            size="md"
           />
           <AmountInput
             label="Amount"
@@ -129,6 +131,7 @@ export default function Transactions() {
             fieldName="amount"
             min={0.01}
             disabled={isLoading}
+            size="md"
           ></AmountInput>
           <DatePickerInput
             label="Date"
@@ -138,6 +141,7 @@ export default function Transactions() {
             clearable={true}
             {...form.getInputProps("date")}
             disabled={isLoading}
+            size="md"
           />
           <Select
             label="Source Account"
@@ -150,6 +154,7 @@ export default function Transactions() {
             {...form.getInputProps("sourceAccountId")}
             searchable
             disabled={isLoading}
+            size="md"
           />
           <Select
             label="Target Account"
@@ -162,6 +167,7 @@ export default function Transactions() {
             {...form.getInputProps("targetAccountId")}
             searchable
             disabled={isLoading}
+            size="md"
           />
           <TextInput
             label="Notes"
@@ -169,6 +175,7 @@ export default function Transactions() {
             maxLength={50}
             {...form.getInputProps("notes")}
             disabled={isLoading}
+            size="md"
           />
         </Group>
         <Button
@@ -177,6 +184,7 @@ export default function Transactions() {
           mt="md"
           mb="md"
           loading={isEnumsLoading}
+          size="md"
         >
           Search
         </Button>

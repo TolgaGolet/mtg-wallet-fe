@@ -244,17 +244,20 @@ const SettingsPage = () => {
               label="Email"
               {...userInfoForm.getInputProps("email")}
               required
+              size="md"
             />
             <TextInput
               label="Name"
               {...userInfoForm.getInputProps("name")}
               required
+              size="md"
             />
             <TextInput
               label="Surname"
               {...userInfoForm.getInputProps("surname")}
+              size="md"
             />
-            <Button type="submit" loading={isLoading} mt="lg">
+            <Button type="submit" loading={isLoading} mt="lg" size="md">
               Save Settings
             </Button>
           </form>
@@ -264,12 +267,15 @@ const SettingsPage = () => {
               checked={twoFactorEnabled}
               disabled={isLoading}
               onChange={() => openTwoFactorModal()}
+              size="md"
             />
           </Group>
         </Stack>
         <Stack align="flex-start" justify="center" gap="xs" mt="md">
-          <Button onClick={openPasswordModal}>Change Password</Button>
-          <Button color="red" onClick={openDeleteModal}>
+          <Button onClick={openPasswordModal} size="md">
+            Change Password
+          </Button>
+          <Button color="red" onClick={openDeleteModal} size="md">
             Delete Account
           </Button>
         </Stack>
@@ -291,18 +297,21 @@ const SettingsPage = () => {
                 placeholder="Current Password"
                 {...changePasswordForm.getInputProps("currentPassword")}
                 required
+                size="md"
               />
               <PasswordInput
                 label="New Password"
                 placeholder="New Password"
                 {...changePasswordForm.getInputProps("newPassword")}
                 required
+                size="md"
               />
               <PasswordInput
                 label="Confirm Password"
                 placeholder="Confirm Password"
                 {...changePasswordForm.getInputProps("confirmPassword")}
                 required
+                size="md"
               />
               <Progress
                 value={progressValue}
@@ -334,7 +343,7 @@ const SettingsPage = () => {
                   </List.Item>
                 ))}
               </List>
-              <Button type="submit" loading={isLoading} mt="lg">
+              <Button type="submit" loading={isLoading} mt="lg" size="md">
                 Change Password
               </Button>
             </form>
