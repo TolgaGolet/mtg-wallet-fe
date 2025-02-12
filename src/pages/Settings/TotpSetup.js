@@ -123,6 +123,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                 required
                 autoFocus
                 error={validationError}
+                size="md"
               />
 
               <Group position="center">
@@ -130,7 +131,8 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                   type="submit"
                   color="red"
                   loading={loading}
-                  disabled={disableCode.length !== 6}
+                  disabled={validationError || disableCode.length !== 6}
+                  size="md"
                 >
                   Verify and Disable 2FA
                 </Button>
@@ -210,6 +212,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                     maxLength={6}
                     autoFocus
                     error={validationError}
+                    size="md"
                   />
 
                   <Group position="apart">
@@ -221,6 +224,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                       }
                       style={{ margin: "auto" }}
                       mt="md"
+                      size="md"
                     >
                       Verify and Enable 2FA
                     </Button>
