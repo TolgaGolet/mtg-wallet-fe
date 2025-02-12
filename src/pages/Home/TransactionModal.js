@@ -113,7 +113,7 @@ export default function TransactionModal({
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opened]);
+  }, [opened, recentTransactions]);
 
   useEffect(() => {
     if (
