@@ -30,15 +30,23 @@ export default function Transactions() {
   let [pageNo, setPageNo] = useState(0);
   let [displayedTransactionId, setDisplayedTransactionId] = useState(null);
   let [isTransactionModelOpened, setIsTransactionModelOpened] = useState(false);
+  let [currentFilter, setCurrentFilter] = useState(null);
 
-  useEffect(() => {
+  const fetchTransactions = (filterData, page) => {
+    setIsLoading(true);
+    const request = filterData || {};
+
     callApi
-      .post("transaction/search", {}, { params: { pageNo: pageNo } })
+      .post("transaction/search", request, { params: { pageNo: page } })
       .then((response) => {
         setTransactions(response.data?.content);
         setTotalPages(response.data?.totalPages);
         setIsLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchTransactions(currentFilter, pageNo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageNo]);
 
@@ -52,23 +60,18 @@ export default function Transactions() {
   }, []);
 
   const handleFilterSubmit = (e) => {
-    setIsLoading(true);
-    setPageNo(0); // Reset pagination on filter submit
-    let request = {
+    const request = {
       ...e,
       typeValue: e.transactionType,
       payeeName: e.payeeName ? e.payeeName : null,
       dateTime: e.date ? e.date : null,
-      sourceAccountId: parseInt(e.sourceAccountId),
-      targetAccountId: parseInt(e.targetAccountId),
+      sourceAccountId: e.sourceAccountId ? parseInt(e.sourceAccountId) : null,
+      targetAccountId: e.targetAccountId ? parseInt(e.targetAccountId) : null,
+      notes: e.notes ? e.notes : null,
     };
-    callApi
-      .post("transaction/search", request, { params: { pageNo: pageNo } })
-      .then((response) => {
-        setTransactions(response.data?.content);
-        setTotalPages(response.data?.totalPages);
-        setIsLoading(false);
-      });
+    setCurrentFilter(request);
+    setPageNo(0); // Reset pagination on filter submit
+    fetchTransactions(request, 0);
   };
 
   const form = useForm({
@@ -80,7 +83,7 @@ export default function Transactions() {
       date: null,
       sourceAccountId: null,
       targetAccountId: null,
-      notes: null,
+      notes: "",
     },
 
     validate: {
@@ -178,16 +181,24 @@ export default function Transactions() {
             size="md"
           />
         </Group>
-        <Button
-          type="submit"
-          fullWidth
-          mt="md"
-          mb="md"
-          loading={isEnumsLoading}
-          size="md"
-        >
-          Search
-        </Button>
+        <Group mt="md" mb="md">
+          <Button type="submit" loading={isEnumsLoading} size="md">
+            Search
+          </Button>
+          <Button
+            variant="light"
+            onClick={() => {
+              form.reset();
+              setCurrentFilter(null);
+              setPageNo(0);
+              fetchTransactions(null, 0);
+            }}
+            disabled={isEnumsLoading}
+            size="md"
+          >
+            Clear Filters
+          </Button>
+        </Group>
       </form>
     );
   };
@@ -241,7 +252,6 @@ export default function Transactions() {
 
   const onChangePagination = (value) => {
     if (value !== pageNo + 1) {
-      setIsLoading(true);
       setPageNo(value - 1);
     }
   };
@@ -264,6 +274,7 @@ export default function Transactions() {
         <Center mb="lg" mt="md">
           <Pagination
             total={totalPages}
+            value={pageNo + 1}
             onChange={onChangePagination}
             withEdges
             disabled={isLoading}
