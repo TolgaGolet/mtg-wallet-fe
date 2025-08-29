@@ -51,7 +51,6 @@ export default function TransactionModal({
   let isEdit = transactionId !== null;
   const newPayeePostFix = " (New)";
   const newPayeeId = "newPayee";
-  // Test
 
   const resetState = () => {
     form.reset();
