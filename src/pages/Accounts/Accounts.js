@@ -110,7 +110,7 @@ export default function Accounts() {
   };
 
   const renderCreateAccountButton = () => {
-    let isAccountLimitReached = accountList?.length >= 15;
+    let isAccountLimitReached = accountList?.length >= 20;
     return (
       <Button
         leftSection={<IconPlus size={16} />}
