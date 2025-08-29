@@ -106,7 +106,7 @@ export default function Categories() {
   };
 
   const renderCreateCategoryButton = () => {
-    let isCategoryLimitReached = categoryList?.length >= 50;
+    let isCategoryLimitReached = categoryList?.length >= 100;
     return (
       <Button
         leftSection={<IconPlus size={16} />}
