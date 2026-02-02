@@ -106,7 +106,7 @@ export default function Payees() {
   };
 
   const renderCreatePayeeButton = () => {
-    let isPayeeLimitReached = payeeList?.length >= 100;
+    let isPayeeLimitReached = payeeList?.length >= 200;
     return (
       <Button
         leftSection={<IconPlus size={16} />}
