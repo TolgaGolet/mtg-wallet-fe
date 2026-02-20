@@ -51,10 +51,12 @@ export default function TransactionModal({
   let isEdit = transactionId !== null;
   const newPayeePostFix = " (New)";
   const newPayeeId = "newPayee";
+  let [initialTypeValue, setInitialTypeValue] = useState("EXP");
 
   const resetState = () => {
     form.reset();
     setTypeValue("EXP");
+    setInitialTypeValue("EXP");
   };
 
   const openInEditMode = () => {
@@ -70,7 +72,9 @@ export default function TransactionModal({
         targetAccountId: transactionData.targetAccount?.id + "",
       };
       form.setValues(formValues);
+      form.resetDirty(formValues);
       setTypeValue(transactionData.type?.value);
+      setInitialTypeValue(transactionData.type?.value);
       if (transactionData.payee) {
         setPayeeList((prev) => {
           const payeeExists = prev.find(
@@ -370,6 +374,10 @@ export default function TransactionModal({
   };
 
   const onClose = () => {
+    if (!form.isDirty() && typeValue === initialTypeValue) {
+      close();
+      return;
+    }
     modals.openConfirmModal({
       title: "Unsaved Changes",
       centered: true,
