@@ -91,7 +91,7 @@ export default function Transactions() {
         val &&
         (val?.length > 50 ||
           val?.length < 3 ||
-          !/^[a-zA-Z0-9\sçğıöşü]+$/.test(val))
+          !/^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(val))
           ? "Name must be 3 - 50 characters and contain only letters, numbers and spaces"
           : null,
     },
@@ -114,6 +114,13 @@ export default function Transactions() {
               { value: "INC", label: "Income" },
               { value: "TRA", label: "Transfer" },
             ]}
+            filter={({ options, search }) =>
+              options.filter((option) =>
+                option.label
+                  .toLocaleLowerCase("tr-TR")
+                  .includes(search.toLocaleLowerCase("tr-TR"))
+              )
+            }
             {...form.getInputProps("transactionType")}
             searchable
             disabled={isLoading}
@@ -154,6 +161,13 @@ export default function Transactions() {
               value: account.id + "",
               label: account.name,
             }))}
+            filter={({ options, search }) =>
+              options.filter((option) =>
+                option.label
+                  .toLocaleLowerCase("tr-TR")
+                  .includes(search.toLocaleLowerCase("tr-TR"))
+              )
+            }
             {...form.getInputProps("sourceAccountId")}
             searchable
             disabled={isLoading}
@@ -167,6 +181,13 @@ export default function Transactions() {
               value: account.id + "",
               label: account.name,
             }))}
+            filter={({ options, search }) =>
+              options.filter((option) =>
+                option.label
+                  .toLocaleLowerCase("tr-TR")
+                  .includes(search.toLocaleLowerCase("tr-TR"))
+              )
+            }
             {...form.getInputProps("targetAccountId")}
             searchable
             disabled={isLoading}

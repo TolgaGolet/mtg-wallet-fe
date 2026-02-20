@@ -5,6 +5,7 @@ import {
   Center,
   Fieldset,
   FocusTrap,
+  Group,
   Loader,
   LoadingOverlay,
   Modal,
@@ -18,7 +19,7 @@ import {
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { IconCash, IconReceipt, IconTransfer } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { modals } from "@mantine/modals";
 import useAxios from "../../utils/useAxios";
 import { useDebouncedValue } from "@mantine/hooks";
@@ -51,10 +52,23 @@ export default function TransactionModal({
   let isEdit = transactionId !== null;
   const newPayeePostFix = " (New)";
   const newPayeeId = "newPayee";
+  let [initialTypeValue, setInitialTypeValue] = useState("EXP");
+
+  const payeeRef = useRef(null);
+  const categoryRef = useRef(null);
+  const amountRef = useRef(null);
+  const accountRef = useRef(null);
+  const targetAccountRef = useRef(null);
+  const notesRef = useRef(null);
+
+  const focusField = (ref) => {
+    setTimeout(() => ref?.current?.focus(), 50);
+  };
 
   const resetState = () => {
     form.reset();
     setTypeValue("EXP");
+    setInitialTypeValue("EXP");
   };
 
   const openInEditMode = () => {
@@ -70,7 +84,9 @@ export default function TransactionModal({
         targetAccountId: transactionData.targetAccount?.id + "",
       };
       form.setValues(formValues);
+      form.resetDirty(formValues);
       setTypeValue(transactionData.type?.value);
+      setInitialTypeValue(transactionData.type?.value);
       if (transactionData.payee) {
         setPayeeList((prev) => {
           const payeeExists = prev.find(
@@ -116,6 +132,13 @@ export default function TransactionModal({
   }, [opened, recentTransactions]);
 
   useEffect(() => {
+    if (!isLoading && !isEdit && opened) {
+      focusField(payeeRef);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, opened]);
+
+  useEffect(() => {
     if (
       debouncedPayeeSearchKeyword === null ||
       debouncedPayeeSearchKeyword.includes(newPayeePostFix)
@@ -124,8 +147,8 @@ export default function TransactionModal({
     }
     let existingPayee = payeeList.find(
       (p) =>
-        p.name?.trim().toLowerCase() ===
-          debouncedPayeeSearchKeyword.trim().toLowerCase() &&
+        p.name?.trim().toLocaleLowerCase('tr-TR') ===
+          debouncedPayeeSearchKeyword.trim().toLocaleLowerCase('tr-TR') &&
         p.id !== newPayeeId
     );
     if (existingPayee) {
@@ -140,7 +163,7 @@ export default function TransactionModal({
     if (
       debouncedPayeeSearchKeyword &&
       debouncedPayeeSearchKeyword?.length <= 50 &&
-      /^[a-zA-Z0-9\sçğıöşü]+$/.test(debouncedPayeeSearchKeyword)
+      /^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(debouncedPayeeSearchKeyword)
     ) {
       request = {
         ...request,
@@ -177,7 +200,7 @@ export default function TransactionModal({
       (response.data?.empty ||
         !response.data?.content?.find(
           (p) =>
-            p.name?.trim().toLowerCase() === request?.name?.trim().toLowerCase()
+            p.name?.trim().toLocaleLowerCase('tr-TR') === request?.name?.trim().toLocaleLowerCase('tr-TR')
         ))
     ) {
       let newPayee = {
@@ -295,8 +318,8 @@ export default function TransactionModal({
       (acc, transaction) => {
         const existingTransaction = acc.find(
           (t) =>
-            t.payee?.name?.trim().toLowerCase() ===
-            transaction.payee?.name?.trim().toLowerCase()
+            t.payee?.name?.trim().toLocaleLowerCase('tr-TR') ===
+            transaction.payee?.name?.trim().toLocaleLowerCase('tr-TR')
         );
         if (!existingTransaction) {
           acc.push(transaction);
@@ -310,6 +333,7 @@ export default function TransactionModal({
 
   const onClickSuggestedAccount = (accountId) => {
     form.setFieldValue("sourceAccountId", accountId + "");
+    focusField(typeValue === "TRA" ? targetAccountRef : notesRef);
   };
 
   const onClickSuggestedPayee = (payeeId) => {
@@ -323,6 +347,7 @@ export default function TransactionModal({
         });
     }
     form.setFieldValue("payeeId", payeeId + "");
+    focusField(amountRef);
   };
 
   const renderSuggestedAccounts = () => {
@@ -370,6 +395,10 @@ export default function TransactionModal({
   };
 
   const onClose = () => {
+    if (!form.isDirty() && typeValue === initialTypeValue) {
+      close();
+      return;
+    }
     modals.openConfirmModal({
       title: "Unsaved Changes",
       centered: true,
@@ -392,7 +421,21 @@ export default function TransactionModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={isEdit ? "Edit Transaction" : "Create Transaction"}
+      withCloseButton={false}
+      title={
+        <Box w="100%">
+          <Text fw={500}>{isEdit ? "Edit Transaction" : "Create Transaction"}</Text>
+          <Group justify="space-between" mt="xs">
+            <Button variant="subtle" size="compact-sm" color="gray" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="compact-sm" type="submit" form="transaction-form" loading={isLoading}>
+              {isEdit ? "Save" : "Create"}
+            </Button>
+          </Group>
+        </Box>
+      }
+      styles={{ title: { width: '100%' } }}
       centered
       transitionProps={{ transition: "fade", duration: 200 }}
       overlayProps={{
@@ -405,6 +448,7 @@ export default function TransactionModal({
         onChange={(value) => {
           form.setValues((prev) => ({ ...prev, payeeId: null }));
           setTypeValue(value);
+          focusField(payeeRef);
         }}
         fullWidth
         disabled={isLoading}
@@ -459,17 +503,19 @@ export default function TransactionModal({
       <Box pos="relative" mt="md">
         <LoadingOverlay visible={isLoading} />
         <Fieldset disabled={isLoading}>
-          <FocusTrap active={true}>
+          <FocusTrap active={!isLoading && !isEdit}>
             <form
+              id="transaction-form"
               onSubmit={form.onSubmit((e) => {
                 setIsLoading(true);
                 isEdit ? editTransaction(e) : createTransaction(e);
               })}
             >
               <Select
+                ref={payeeRef}
                 label="Payee"
                 placeholder="Payee"
-                description="Type to search or add a new one"
+                description={<><Text size="sm">Type to search or add a new one</Text>{renderSuggestedPayees()}</>}
                 onSearchChange={setPayeeSearchKeyword}
                 rightSection={
                   isPayeeLoading ? <Loader size="sm" type="dots" /> : null
@@ -479,15 +525,26 @@ export default function TransactionModal({
                   value: payee.id + "",
                   label: payee.name,
                 }))}
+                filter={({ options, search }) =>
+                  options.filter((option) =>
+                    option.label
+                      .toLocaleLowerCase("tr-TR")
+                      .includes(search.toLocaleLowerCase("tr-TR"))
+                  )
+                }
                 {...form.getInputProps("payeeId")}
+                onChange={(value) => {
+                  form.setFieldValue("payeeId", value);
+                  if (value) focusField(value === newPayeeId ? categoryRef : amountRef);
+                }}
                 searchable
                 required
                 disabled={isLoading}
                 mt="md"
                 size="md"
               />
-              {renderSuggestedPayees()}
               <Select
+                ref={categoryRef}
                 label="Category"
                 placeholder="Category"
                 clearable={true}
@@ -501,7 +558,18 @@ export default function TransactionModal({
                       ? category.name + " (" + category.parentCategoryName + ")"
                       : category.name,
                   }))}
+                filter={({ options, search }) =>
+                  options.filter((option) =>
+                    option.label
+                      .toLocaleLowerCase("tr-TR")
+                      .includes(search.toLocaleLowerCase("tr-TR"))
+                  )
+                }
                 {...form.getInputProps("categoryId")}
+                onChange={(value) => {
+                  form.setFieldValue("categoryId", value);
+                  if (value) focusField(amountRef);
+                }}
                 searchable
                 nothingFoundMessage={
                   "Nothing found. Add a new " +
@@ -514,6 +582,7 @@ export default function TransactionModal({
                 size="md"
               />
               <AmountInput
+                ref={amountRef}
                 label="Amount"
                 placeholder="Transaction Amount"
                 required={true}
@@ -530,14 +599,20 @@ export default function TransactionModal({
                 dropdownType="modal"
                 highlightToday={true}
                 {...form.getInputProps("dateTime")}
+                onChange={(value) => {
+                  form.setFieldValue("dateTime", value);
+                  if (value) focusField(accountRef);
+                }}
                 required
                 disabled={isLoading}
                 mt="md"
                 size="md"
               />
               <Select
+                ref={accountRef}
                 label="Account"
                 placeholder="Select Account"
+                description={renderSuggestedAccounts()}
                 clearable={false}
                 data={accountList.map((account) => ({
                   value: account.id + "",
@@ -548,7 +623,18 @@ export default function TransactionModal({
                     account.currency?.value +
                     ")",
                 }))}
+                filter={({ options, search }) =>
+                  options.filter((option) =>
+                    option.label
+                      .toLocaleLowerCase("tr-TR")
+                      .includes(search.toLocaleLowerCase("tr-TR"))
+                  )
+                }
                 {...form.getInputProps("sourceAccountId")}
+                onChange={(value) => {
+                  form.setFieldValue("sourceAccountId", value);
+                  if (value) focusField(typeValue === "TRA" ? targetAccountRef : notesRef);
+                }}
                 searchable
                 nothingFoundMessage={
                   <Box>
@@ -573,9 +659,9 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
-              {renderSuggestedAccounts()}
               {typeValue === "TRA" && (
                 <Select
+                  ref={targetAccountRef}
                   label="Target Account"
                   placeholder="Select Target Account"
                   description="Target account's currency must match the source account's currency"
@@ -600,7 +686,18 @@ export default function TransactionModal({
                         account.currency?.value +
                         ")",
                     }))}
+                  filter={({ options, search }) =>
+                    options.filter((option) =>
+                      option.label
+                        .toLocaleLowerCase("tr-TR")
+                        .includes(search.toLocaleLowerCase("tr-TR"))
+                    )
+                  }
                   {...form.getInputProps("targetAccountId")}
+                  onChange={(value) => {
+                    form.setFieldValue("targetAccountId", value);
+                    if (value) focusField(notesRef);
+                  }}
                   searchable
                   nothingFoundMessage={
                     <Box>
@@ -630,6 +727,7 @@ export default function TransactionModal({
                 />
               )}
               <TextInput
+                ref={notesRef}
                 label="Notes"
                 placeholder="Add a note (optional)"
                 maxLength={50}
@@ -638,20 +736,11 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
-              <Button
-                type="submit"
-                loading={isLoading}
-                fullWidth
-                mt="xl"
-                size="md"
-              >
-                {isEdit ? "Save" : "Create"}
-              </Button>
               {isEdit && (
                 <Button
                   loading={isLoading}
                   fullWidth
-                  mt="md"
+                  mt="xl"
                   size="md"
                   color="red"
                   onClick={openDeleteConfirmModal}
