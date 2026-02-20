@@ -19,7 +19,7 @@ import {
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { IconCash, IconReceipt, IconTransfer } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { modals } from "@mantine/modals";
 import useAxios from "../../utils/useAxios";
 import { useDebouncedValue } from "@mantine/hooks";
@@ -53,6 +53,17 @@ export default function TransactionModal({
   const newPayeePostFix = " (New)";
   const newPayeeId = "newPayee";
   let [initialTypeValue, setInitialTypeValue] = useState("EXP");
+
+  const payeeRef = useRef(null);
+  const categoryRef = useRef(null);
+  const amountRef = useRef(null);
+  const accountRef = useRef(null);
+  const targetAccountRef = useRef(null);
+  const notesRef = useRef(null);
+
+  const focusField = (ref) => {
+    setTimeout(() => ref?.current?.focus(), 50);
+  };
 
   const resetState = () => {
     form.reset();
@@ -119,6 +130,13 @@ export default function TransactionModal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opened, recentTransactions]);
+
+  useEffect(() => {
+    if (!isLoading && !isEdit && opened) {
+      focusField(payeeRef);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, opened]);
 
   useEffect(() => {
     if (
@@ -315,6 +333,7 @@ export default function TransactionModal({
 
   const onClickSuggestedAccount = (accountId) => {
     form.setFieldValue("sourceAccountId", accountId + "");
+    focusField(typeValue === "TRA" ? targetAccountRef : notesRef);
   };
 
   const onClickSuggestedPayee = (payeeId) => {
@@ -328,6 +347,7 @@ export default function TransactionModal({
         });
     }
     form.setFieldValue("payeeId", payeeId + "");
+    focusField(amountRef);
   };
 
   const renderSuggestedAccounts = () => {
@@ -428,6 +448,7 @@ export default function TransactionModal({
         onChange={(value) => {
           form.setValues((prev) => ({ ...prev, payeeId: null }));
           setTypeValue(value);
+          focusField(payeeRef);
         }}
         fullWidth
         disabled={isLoading}
@@ -482,7 +503,7 @@ export default function TransactionModal({
       <Box pos="relative" mt="md">
         <LoadingOverlay visible={isLoading} />
         <Fieldset disabled={isLoading}>
-          <FocusTrap active={true}>
+          <FocusTrap active={!isLoading && !isEdit}>
             <form
               id="transaction-form"
               onSubmit={form.onSubmit((e) => {
@@ -491,6 +512,7 @@ export default function TransactionModal({
               })}
             >
               <Select
+                ref={payeeRef}
                 label="Payee"
                 placeholder="Payee"
                 description={<><Text size="sm">Type to search or add a new one</Text>{renderSuggestedPayees()}</>}
@@ -511,6 +533,10 @@ export default function TransactionModal({
                   )
                 }
                 {...form.getInputProps("payeeId")}
+                onChange={(value) => {
+                  form.setFieldValue("payeeId", value);
+                  if (value) focusField(value === newPayeeId ? categoryRef : amountRef);
+                }}
                 searchable
                 required
                 disabled={isLoading}
@@ -518,6 +544,7 @@ export default function TransactionModal({
                 size="md"
               />
               <Select
+                ref={categoryRef}
                 label="Category"
                 placeholder="Category"
                 clearable={true}
@@ -539,6 +566,10 @@ export default function TransactionModal({
                   )
                 }
                 {...form.getInputProps("categoryId")}
+                onChange={(value) => {
+                  form.setFieldValue("categoryId", value);
+                  if (value) focusField(amountRef);
+                }}
                 searchable
                 nothingFoundMessage={
                   "Nothing found. Add a new " +
@@ -551,6 +582,7 @@ export default function TransactionModal({
                 size="md"
               />
               <AmountInput
+                ref={amountRef}
                 label="Amount"
                 placeholder="Transaction Amount"
                 required={true}
@@ -567,12 +599,17 @@ export default function TransactionModal({
                 dropdownType="modal"
                 highlightToday={true}
                 {...form.getInputProps("dateTime")}
+                onChange={(value) => {
+                  form.setFieldValue("dateTime", value);
+                  if (value) focusField(accountRef);
+                }}
                 required
                 disabled={isLoading}
                 mt="md"
                 size="md"
               />
               <Select
+                ref={accountRef}
                 label="Account"
                 placeholder="Select Account"
                 description={renderSuggestedAccounts()}
@@ -594,6 +631,10 @@ export default function TransactionModal({
                   )
                 }
                 {...form.getInputProps("sourceAccountId")}
+                onChange={(value) => {
+                  form.setFieldValue("sourceAccountId", value);
+                  if (value) focusField(typeValue === "TRA" ? targetAccountRef : notesRef);
+                }}
                 searchable
                 nothingFoundMessage={
                   <Box>
@@ -620,6 +661,7 @@ export default function TransactionModal({
               />
               {typeValue === "TRA" && (
                 <Select
+                  ref={targetAccountRef}
                   label="Target Account"
                   placeholder="Select Target Account"
                   description="Target account's currency must match the source account's currency"
@@ -652,6 +694,10 @@ export default function TransactionModal({
                     )
                   }
                   {...form.getInputProps("targetAccountId")}
+                  onChange={(value) => {
+                    form.setFieldValue("targetAccountId", value);
+                    if (value) focusField(notesRef);
+                  }}
                   searchable
                   nothingFoundMessage={
                     <Box>
@@ -681,6 +727,7 @@ export default function TransactionModal({
                 />
               )}
               <TextInput
+                ref={notesRef}
                 label="Notes"
                 placeholder="Add a note (optional)"
                 maxLength={50}

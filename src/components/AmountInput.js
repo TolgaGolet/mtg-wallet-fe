@@ -1,6 +1,7 @@
+import { forwardRef } from "react";
 import { NumberInput } from "@mantine/core";
 
-export default function AmountInput({
+const AmountInput = forwardRef(function AmountInput({
   label,
   placeholder,
   required,
@@ -9,9 +10,10 @@ export default function AmountInput({
   min,
   max,
   ...props
-}) {
+}, ref) {
   return (
     <NumberInput
+      ref={ref}
       label={label || "Amount"}
       placeholder={placeholder || "Amount"}
       {...form.getInputProps(fieldName)}
@@ -29,4 +31,6 @@ export default function AmountInput({
       {...props}
     />
   );
-}
+});
+
+export default AmountInput;
