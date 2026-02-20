@@ -44,6 +44,8 @@
   cursor: pointer;
 }
 
-.accountRow:hover {
-  background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4)) !important;
+@media (hover: hover) {
+  .accountRow:hover {
+    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4)) !important;
+  }
 }

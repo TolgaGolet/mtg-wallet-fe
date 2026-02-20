@@ -37,7 +37,7 @@ export default function CreateOrEditPayee() {
       name: (val) =>
         val?.length > 50 ||
         val?.length < 3 ||
-        !/^[a-zA-Z0-9\sçğıöşü]+$/.test(val)
+        !/^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(val)
           ? "Name must be 3-50 characters and contain only letters, numbers and spaces"
           : null,
     },
