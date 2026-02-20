@@ -19,8 +19,10 @@ export default function AmountInput({
       decimalScale={2}
       fixedDecimalScale
       decimalSeparator="."
+      allowedDecimalSeparators={[".", ","]}
       thousandSeparator=","
       hideControls
+      inputMode="decimal"
       max={max || "999999999999999.99"}
       min={min || "-999999999999999.99"}
       // clampBehavior="strict"
