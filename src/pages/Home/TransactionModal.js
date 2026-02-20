@@ -5,6 +5,7 @@ import {
   Center,
   Fieldset,
   FocusTrap,
+  Group,
   Loader,
   LoadingOverlay,
   Modal,
@@ -400,7 +401,21 @@ export default function TransactionModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={isEdit ? "Edit Transaction" : "Create Transaction"}
+      withCloseButton={false}
+      title={
+        <Box w="100%">
+          <Text fw={500}>{isEdit ? "Edit Transaction" : "Create Transaction"}</Text>
+          <Group justify="space-between" mt="xs">
+            <Button variant="subtle" size="compact-sm" color="gray" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button size="compact-sm" type="submit" form="transaction-form" loading={isLoading}>
+              {isEdit ? "Save" : "Create"}
+            </Button>
+          </Group>
+        </Box>
+      }
+      styles={{ title: { width: '100%' } }}
       centered
       transitionProps={{ transition: "fade", duration: 200 }}
       overlayProps={{
@@ -469,6 +484,7 @@ export default function TransactionModal({
         <Fieldset disabled={isLoading}>
           <FocusTrap active={true}>
             <form
+              id="transaction-form"
               onSubmit={form.onSubmit((e) => {
                 setIsLoading(true);
                 isEdit ? editTransaction(e) : createTransaction(e);
@@ -673,20 +689,11 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
-              <Button
-                type="submit"
-                loading={isLoading}
-                fullWidth
-                mt="xl"
-                size="md"
-              >
-                {isEdit ? "Save" : "Create"}
-              </Button>
               {isEdit && (
                 <Button
                   loading={isLoading}
                   fullWidth
-                  mt="md"
+                  mt="xl"
                   size="md"
                   color="red"
                   onClick={openDeleteConfirmModal}
