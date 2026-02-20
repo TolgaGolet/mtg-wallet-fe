@@ -469,7 +469,7 @@ export default function TransactionModal({
               <Select
                 label="Payee"
                 placeholder="Payee"
-                description="Type to search or add a new one"
+                description={<><Text size="sm">Type to search or add a new one</Text>{renderSuggestedPayees()}</>}
                 onSearchChange={setPayeeSearchKeyword}
                 rightSection={
                   isPayeeLoading ? <Loader size="sm" type="dots" /> : null
@@ -493,7 +493,6 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
-              {renderSuggestedPayees()}
               <Select
                 label="Category"
                 placeholder="Category"
@@ -552,6 +551,7 @@ export default function TransactionModal({
               <Select
                 label="Account"
                 placeholder="Select Account"
+                description={renderSuggestedAccounts()}
                 clearable={false}
                 data={accountList.map((account) => ({
                   value: account.id + "",
@@ -594,7 +594,6 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
-              {renderSuggestedAccounts()}
               {typeValue === "TRA" && (
                 <Select
                   label="Target Account"
