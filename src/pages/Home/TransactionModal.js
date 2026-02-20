@@ -124,8 +124,8 @@ export default function TransactionModal({
     }
     let existingPayee = payeeList.find(
       (p) =>
-        p.name?.trim().toLowerCase() ===
-          debouncedPayeeSearchKeyword.trim().toLowerCase() &&
+        p.name?.trim().toLocaleLowerCase('tr-TR') ===
+          debouncedPayeeSearchKeyword.trim().toLocaleLowerCase('tr-TR') &&
         p.id !== newPayeeId
     );
     if (existingPayee) {
@@ -140,7 +140,7 @@ export default function TransactionModal({
     if (
       debouncedPayeeSearchKeyword &&
       debouncedPayeeSearchKeyword?.length <= 50 &&
-      /^[a-zA-Z0-9\sçğıöşü]+$/.test(debouncedPayeeSearchKeyword)
+      /^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(debouncedPayeeSearchKeyword)
     ) {
       request = {
         ...request,
@@ -177,7 +177,7 @@ export default function TransactionModal({
       (response.data?.empty ||
         !response.data?.content?.find(
           (p) =>
-            p.name?.trim().toLowerCase() === request?.name?.trim().toLowerCase()
+            p.name?.trim().toLocaleLowerCase('tr-TR') === request?.name?.trim().toLocaleLowerCase('tr-TR')
         ))
     ) {
       let newPayee = {
@@ -295,8 +295,8 @@ export default function TransactionModal({
       (acc, transaction) => {
         const existingTransaction = acc.find(
           (t) =>
-            t.payee?.name?.trim().toLowerCase() ===
-            transaction.payee?.name?.trim().toLowerCase()
+            t.payee?.name?.trim().toLocaleLowerCase('tr-TR') ===
+            transaction.payee?.name?.trim().toLocaleLowerCase('tr-TR')
         );
         if (!existingTransaction) {
           acc.push(transaction);
@@ -479,6 +479,13 @@ export default function TransactionModal({
                   value: payee.id + "",
                   label: payee.name,
                 }))}
+                filter={({ options, search }) =>
+                  options.filter((option) =>
+                    option.label
+                      .toLocaleLowerCase("tr-TR")
+                      .includes(search.toLocaleLowerCase("tr-TR"))
+                  )
+                }
                 {...form.getInputProps("payeeId")}
                 searchable
                 required
@@ -501,6 +508,13 @@ export default function TransactionModal({
                       ? category.name + " (" + category.parentCategoryName + ")"
                       : category.name,
                   }))}
+                filter={({ options, search }) =>
+                  options.filter((option) =>
+                    option.label
+                      .toLocaleLowerCase("tr-TR")
+                      .includes(search.toLocaleLowerCase("tr-TR"))
+                  )
+                }
                 {...form.getInputProps("categoryId")}
                 searchable
                 nothingFoundMessage={
@@ -548,6 +562,13 @@ export default function TransactionModal({
                     account.currency?.value +
                     ")",
                 }))}
+                filter={({ options, search }) =>
+                  options.filter((option) =>
+                    option.label
+                      .toLocaleLowerCase("tr-TR")
+                      .includes(search.toLocaleLowerCase("tr-TR"))
+                  )
+                }
                 {...form.getInputProps("sourceAccountId")}
                 searchable
                 nothingFoundMessage={
@@ -600,6 +621,13 @@ export default function TransactionModal({
                         account.currency?.value +
                         ")",
                     }))}
+                  filter={({ options, search }) =>
+                    options.filter((option) =>
+                      option.label
+                        .toLocaleLowerCase("tr-TR")
+                        .includes(search.toLocaleLowerCase("tr-TR"))
+                    )
+                  }
                   {...form.getInputProps("targetAccountId")}
                   searchable
                   nothingFoundMessage={
