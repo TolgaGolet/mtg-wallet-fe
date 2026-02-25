@@ -359,9 +359,31 @@ export default function Home() {
   };
 
   const getDateGroup = (dateTime) => {
-    const today = new Date();
+    if (!dateTime) {
+      return "Older";
+    }
+
+    const now = new Date();
     const date = new Date(dateTime);
-    const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));
+
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const startOfDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+    const diffMs = startOfToday - startOfDate;
+    let diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    // Guard against future-dated transactions due to time zone offsets
+    if (diffDays < 0) {
+      diffDays = 0;
+    }
 
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
@@ -391,37 +413,50 @@ export default function Home() {
       {}
     );
 
+    const groupOrder = ["Today", "Yesterday", "Last Week", "Last Month", "Older"];
+
     return (
       <Stack>
-        {Object.entries(groupedTransactions).map(([group, transactions]) => (
-          <React.Fragment key={group}>
-            <Divider
-              label={
-                <Text fw={250} size="sm">
-                  {group}
-                </Text>
-              }
-              labelPosition="left"
-            />
-            {transactions.map((transaction) => (
-              <TransactionRow
-                key={transaction.id}
-                payee={transaction.payee?.name}
-                category={transaction.payee?.category?.name}
-                parentCategory={
-                  transaction.payee?.category?.parentCategory?.name
+        {groupOrder.map((group) => {
+          const transactions = groupedTransactions[group];
+          if (!transactions || transactions.length === 0) {
+            return null;
+          }
+
+          const sortedTransactions = [...transactions].sort(
+            (a, b) => new Date(b.dateTime) - new Date(a.dateTime)
+          );
+
+          return (
+            <React.Fragment key={group}>
+              <Divider
+                label={
+                  <Text fw={250} size="sm">
+                    {group}
+                  </Text>
                 }
-                typeValue={transaction.type?.value}
-                amount={transaction.amount}
-                currencyValue={transaction.sourceAccount?.currency?.value}
-                dateTime={transaction.dateTime}
-                sourceAccount={transaction.sourceAccount?.name}
-                targetAccount={transaction.targetAccount?.name}
-                onClick={() => onClickTransactionRow(transaction.id)}
+                labelPosition="left"
               />
-            ))}
-          </React.Fragment>
-        ))}
+                {sortedTransactions.map((transaction) => (
+                  <TransactionRow
+                    key={transaction.id}
+                    payee={transaction.payee?.name}
+                    category={transaction.payee?.category?.name}
+                    parentCategory={
+                      transaction.payee?.category?.parentCategory?.name
+                    }
+                    typeValue={transaction.type?.value}
+                    amount={transaction.amount}
+                    currencyValue={transaction.sourceAccount?.currency?.value}
+                    dateTime={transaction.dateTime}
+                    sourceAccount={transaction.sourceAccount?.name}
+                    targetAccount={transaction.targetAccount?.name}
+                    onClick={() => onClickTransactionRow(transaction.id)}
+                  />
+                ))}
+            </React.Fragment>
+          );
+        })}
       </Stack>
     );
   };
