@@ -66,9 +66,21 @@ export default function TransactionModal({
   };
 
   const resetState = () => {
-    form.reset();
+    const initialFormValues = {
+      payeeId: null,
+      categoryId: null,
+      amount: null,
+      dateTime: new Date(),
+      sourceAccountId: null,
+      targetAccountId: null,
+      notes: null,
+    };
+    form.setValues(initialFormValues);
+    form.resetDirty(initialFormValues);
     setTypeValue("EXP");
     setInitialTypeValue("EXP");
+    setIsCategoryDisabled(false);
+    setPayeeSearchKeyword(null);
   };
 
   const openInEditMode = () => {
@@ -115,6 +127,9 @@ export default function TransactionModal({
     if (!opened) {
       resetState();
       return;
+    }
+    if (!isEdit) {
+      resetState();
     }
     if (loadedRecentTransactions) {
       setRecentTransactions(loadedRecentTransactions);
