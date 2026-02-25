@@ -601,7 +601,9 @@ export default function TransactionModal({
                 {...form.getInputProps("dateTime")}
                 onChange={(value) => {
                   form.setFieldValue("dateTime", value);
-                  if (value) focusField(accountRef);
+                }}
+                submitButtonProps={{
+                  onClick: () => setTimeout(() => focusField(accountRef), 50),
                 }}
                 required
                 disabled={isLoading}
