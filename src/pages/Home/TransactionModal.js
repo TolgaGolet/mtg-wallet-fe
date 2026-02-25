@@ -83,7 +83,7 @@ export default function TransactionModal({
     setPayeeSearchKeyword(null);
   };
 
-  const openInEditMode = () => {
+  const openInEditMode = (loadedCategoryList) => {
     let transactionData = recentTransactions.find(
       (transaction) => transaction.id === transactionId
     );
@@ -91,9 +91,10 @@ export default function TransactionModal({
       let formValues = {
         ...transactionData,
         dateTime: new Date(transactionData.dateTime),
-        payeeId: transactionData.payee?.id + "",
-        sourceAccountId: transactionData.sourceAccount?.id + "",
-        targetAccountId: transactionData.targetAccount?.id + "",
+        categoryId: transactionData.payee?.category?.id ? transactionData.payee.category.id + "" : null,
+        payeeId: transactionData.payee?.id ? transactionData.payee.id + "" : null,
+        sourceAccountId: transactionData.sourceAccount?.id ? transactionData.sourceAccount.id + "" : null,
+        targetAccountId: transactionData.targetAccount?.id ? transactionData.targetAccount.id + "" : null,
       };
       form.setValues(formValues);
       form.resetDirty(formValues);
@@ -110,6 +111,24 @@ export default function TransactionModal({
           return [...prev, transactionData.payee];
         });
       }
+      const catId = transactionData.payee?.category?.id;
+      if (catId) {
+        const categoryExists = loadedCategoryList?.find(
+          (category) => category.id === catId
+        );
+        if (!categoryExists) {
+          callApi.post("category/search", { id: catId }, { params: { pageNo: 0 } }).then(response => {
+             if (response.data?.content?.length > 0) {
+                 setCategoryList(prev => {
+                   if (!prev.find(c => c.id === catId)) {
+                     return [...prev, response.data.content[0]];
+                   }
+                   return prev;
+                 });
+             }
+          });
+        }
+      }
     }
   };
 
@@ -118,7 +137,7 @@ export default function TransactionModal({
     callApi.get("transaction/create/enums").then((response) => {
       setCategoryList(response.data?.categoryList?.content);
       setAccountList(response.data?.accountList?.content);
-      isEdit && openInEditMode();
+      isEdit && openInEditMode(response.data?.categoryList?.content);
       setIsLoading(false);
     });
   };
@@ -155,25 +174,31 @@ export default function TransactionModal({
 
   useEffect(() => {
     if (
-      debouncedPayeeSearchKeyword === null ||
+      debouncedPayeeSearchKeyword &&
       debouncedPayeeSearchKeyword.includes(newPayeePostFix)
     ) {
       return;
     }
-    let existingPayee = payeeList.find(
-      (p) =>
-        p.name?.trim().toLocaleLowerCase('tr-TR') ===
-          debouncedPayeeSearchKeyword.trim().toLocaleLowerCase('tr-TR') &&
-        p.id !== newPayeeId
-    );
-    if (existingPayee) {
-      form.setFieldValue("categoryId", existingPayee.categoryId + "");
-      setIsCategoryDisabled(true);
-      return;
+
+    if (debouncedPayeeSearchKeyword) {
+      let existingPayee = payeeList.find(
+        (p) =>
+          p.name?.trim().toLocaleLowerCase('tr-TR') ===
+            debouncedPayeeSearchKeyword.trim().toLocaleLowerCase('tr-TR') &&
+          p.id !== newPayeeId
+      );
+      if (existingPayee) {
+        form.setFieldValue("categoryId", existingPayee.categoryId + "");
+        setIsCategoryDisabled(true);
+        return;
+      } else {
+        form.setFieldValue("categoryId", null);
+        setIsCategoryDisabled(false);
+      }
     } else {
-      form.setFieldValue("categoryId", null);
       setIsCategoryDisabled(false);
     }
+
     let request = { transactionTypeValue: typeValue };
     if (
       debouncedPayeeSearchKeyword &&
@@ -185,7 +210,8 @@ export default function TransactionModal({
         name: debouncedPayeeSearchKeyword,
       };
     }
-    let cacheData = payeeSearchCache[debouncedPayeeSearchKeyword + typeValue];
+    let cacheKey = (debouncedPayeeSearchKeyword || "") + typeValue;
+    let cacheData = payeeSearchCache[cacheKey];
     if (cacheData) {
       processPayeeSearchResponse(request, cacheData);
       return;
@@ -194,10 +220,10 @@ export default function TransactionModal({
     callApi
       .post("payee/search", request, { params: { pageNo: 0 } })
       .then((response) => {
-        setPayeeSearchCache({
-          ...payeeSearchCache,
-          [debouncedPayeeSearchKeyword + typeValue]: response,
-        });
+        setPayeeSearchCache((prev) => ({
+          ...prev,
+          [cacheKey]: response,
+        }));
         processPayeeSearchResponse(request, response);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
