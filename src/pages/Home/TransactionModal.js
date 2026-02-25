@@ -426,10 +426,10 @@ export default function TransactionModal({
         <Box w="100%">
           <Text fw={500}>{isEdit ? "Edit Transaction" : "Create Transaction"}</Text>
           <Group justify="space-between" mt="xs">
-            <Button variant="subtle" size="compact-sm" color="gray" onClick={onClose}>
+            <Button variant="subtle" size="sm" color="gray" onClick={onClose}>
               Cancel
             </Button>
-            <Button size="compact-sm" type="submit" form="transaction-form" loading={isLoading}>
+            <Button size="sm" type="submit" form="transaction-form" loading={isLoading}>
               {isEdit ? "Save" : "Create"}
             </Button>
           </Group>
