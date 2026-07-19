@@ -11,12 +11,19 @@ const AmountInput = forwardRef(function AmountInput({
   max,
   ...props
 }, ref) {
+  const inputProps = form.getInputProps(fieldName);
+  // Mantine's NumberInput warns when `value` is null. Normalize null/undefined
+  // to an empty string so the input behaves as an uncontrolled-empty field.
+  const normalizedProps = {
+    ...inputProps,
+    value: inputProps.value == null ? "" : inputProps.value,
+  };
   return (
     <NumberInput
       ref={ref}
       label={label || "Amount"}
       placeholder={placeholder || "Amount"}
-      {...form.getInputProps(fieldName)}
+      {...normalizedProps}
       required={required || false}
       decimalScale={2}
       fixedDecimalScale
