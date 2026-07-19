@@ -47,7 +47,7 @@ export default function TransactionModal({
   let [recentTransactions, setRecentTransactions] = useState([]);
   const [debouncedPayeeSearchKeyword] = useDebouncedValue(
     payeeSearchKeyword,
-    500
+    500,
   );
   let isEdit = transactionId !== null;
   const newPayeePostFix = " (New)";
@@ -85,16 +85,24 @@ export default function TransactionModal({
 
   const openInEditMode = (loadedCategoryList) => {
     let transactionData = recentTransactions.find(
-      (transaction) => transaction.id === transactionId
+      (transaction) => transaction.id === transactionId,
     );
     if (transactionData) {
       let formValues = {
         ...transactionData,
         dateTime: new Date(transactionData.dateTime),
-        categoryId: transactionData.payee?.category?.id ? transactionData.payee.category.id + "" : null,
-        payeeId: transactionData.payee?.id ? transactionData.payee.id + "" : null,
-        sourceAccountId: transactionData.sourceAccount?.id ? transactionData.sourceAccount.id + "" : null,
-        targetAccountId: transactionData.targetAccount?.id ? transactionData.targetAccount.id + "" : null,
+        categoryId: transactionData.payee?.category?.id
+          ? transactionData.payee.category.id + ""
+          : null,
+        payeeId: transactionData.payee?.id
+          ? transactionData.payee.id + ""
+          : null,
+        sourceAccountId: transactionData.sourceAccount?.id
+          ? transactionData.sourceAccount.id + ""
+          : null,
+        targetAccountId: transactionData.targetAccount?.id
+          ? transactionData.targetAccount.id + ""
+          : null,
       };
       form.setValues(formValues);
       form.resetDirty(formValues);
@@ -103,7 +111,7 @@ export default function TransactionModal({
       if (transactionData.payee) {
         setPayeeList((prev) => {
           const payeeExists = prev.find(
-            (payee) => payee.id === transactionData.payee.id
+            (payee) => payee.id === transactionData.payee.id,
           );
           if (payeeExists) {
             return prev;
@@ -114,19 +122,21 @@ export default function TransactionModal({
       const catId = transactionData.payee?.category?.id;
       if (catId) {
         const categoryExists = loadedCategoryList?.find(
-          (category) => category.id === catId
+          (category) => category.id === catId,
         );
         if (!categoryExists) {
-          callApi.post("category/search", { id: catId }, { params: { pageNo: 0 } }).then(response => {
-             if (response.data?.content?.length > 0) {
-                 setCategoryList(prev => {
-                   if (!prev.find(c => c.id === catId)) {
-                     return [...prev, response.data.content[0]];
-                   }
-                   return prev;
-                 });
-             }
-          });
+          callApi
+            .post("category/search", { id: catId }, { params: { pageNo: 0 } })
+            .then((response) => {
+              if (response.data?.content?.length > 0) {
+                setCategoryList((prev) => {
+                  if (!prev.find((c) => c.id === catId)) {
+                    return [...prev, response.data.content[0]];
+                  }
+                  return prev;
+                });
+              }
+            });
         }
       }
     }
@@ -183,9 +193,9 @@ export default function TransactionModal({
     if (debouncedPayeeSearchKeyword) {
       let existingPayee = payeeList.find(
         (p) =>
-          p.name?.trim().toLocaleLowerCase('tr-TR') ===
-            debouncedPayeeSearchKeyword.trim().toLocaleLowerCase('tr-TR') &&
-          p.id !== newPayeeId
+          p.name?.trim().toLocaleLowerCase("tr-TR") ===
+            debouncedPayeeSearchKeyword.trim().toLocaleLowerCase("tr-TR") &&
+          p.id !== newPayeeId,
       );
       if (existingPayee) {
         form.setFieldValue("categoryId", existingPayee.categoryId + "");
@@ -241,7 +251,8 @@ export default function TransactionModal({
       (response.data?.empty ||
         !response.data?.content?.find(
           (p) =>
-            p.name?.trim().toLocaleLowerCase('tr-TR') === request?.name?.trim().toLocaleLowerCase('tr-TR')
+            p.name?.trim().toLocaleLowerCase("tr-TR") ===
+            request?.name?.trim().toLocaleLowerCase("tr-TR"),
         ))
     ) {
       let newPayee = {
@@ -359,22 +370,22 @@ export default function TransactionModal({
       (acc, transaction) => {
         const existingTransaction = acc.find(
           (t) =>
-            t.payee?.name?.trim().toLocaleLowerCase('tr-TR') ===
-            transaction.payee?.name?.trim().toLocaleLowerCase('tr-TR')
+            t.payee?.name?.trim().toLocaleLowerCase("tr-TR") ===
+            transaction.payee?.name?.trim().toLocaleLowerCase("tr-TR"),
         );
         if (!existingTransaction) {
           acc.push(transaction);
         }
         return acc;
       },
-      []
+      [],
     );
     return Array.from(uniqueRecentTransactions);
   };
 
   const onClickSuggestedAccount = (accountId) => {
     form.setFieldValue("sourceAccountId", accountId + "");
-    focusField(typeValue === "TRA" ? targetAccountRef : notesRef);
+    focusField(typeValue === "TRA" ? targetAccountRef : amountRef);
   };
 
   const onClickSuggestedPayee = (payeeId) => {
@@ -388,7 +399,7 @@ export default function TransactionModal({
         });
     }
     form.setFieldValue("payeeId", payeeId + "");
-    focusField(amountRef);
+    focusField(accountRef);
   };
 
   const renderSuggestedAccounts = () => {
@@ -465,18 +476,25 @@ export default function TransactionModal({
       withCloseButton={false}
       title={
         <Box w="100%">
-          <Text fw={500}>{isEdit ? "Edit Transaction" : "Create Transaction"}</Text>
+          <Text fw={500}>
+            {isEdit ? "Edit Transaction" : "Create Transaction"}
+          </Text>
           <Group justify="space-between" mt="xs">
             <Button variant="subtle" size="sm" color="gray" onClick={onClose}>
               Cancel
             </Button>
-            <Button size="sm" type="submit" form="transaction-form" loading={isLoading}>
+            <Button
+              size="sm"
+              type="submit"
+              form="transaction-form"
+              loading={isLoading}
+            >
               {isEdit ? "Save" : "Create"}
             </Button>
           </Group>
         </Box>
       }
-      styles={{ title: { width: '100%' } }}
+      styles={{ title: { width: "100%" } }}
       centered
       transitionProps={{ transition: "fade", duration: 200 }}
       overlayProps={{
@@ -556,7 +574,19 @@ export default function TransactionModal({
                 ref={payeeRef}
                 label="Payee"
                 placeholder="Payee"
-                description={<><Text size="sm">Type to search or add a new one</Text>{renderSuggestedPayees()}</>}
+                description={
+                  <>
+                    <Text
+                      size="sm"
+                      component="span"
+                      style={{ display: "block" }}
+                    >
+                      Type to search or add a new one
+                    </Text>
+                    {renderSuggestedPayees()}
+                  </>
+                }
+                descriptionProps={{ component: "div" }}
                 onSearchChange={setPayeeSearchKeyword}
                 rightSection={
                   isPayeeLoading ? <Loader size="sm" type="dots" /> : null
@@ -570,13 +600,14 @@ export default function TransactionModal({
                   options.filter((option) =>
                     option.label
                       .toLocaleLowerCase("tr-TR")
-                      .includes(search.toLocaleLowerCase("tr-TR"))
+                      .includes(search.toLocaleLowerCase("tr-TR")),
                   )
                 }
                 {...form.getInputProps("payeeId")}
                 onChange={(value) => {
                   form.setFieldValue("payeeId", value);
-                  if (value) focusField(value === newPayeeId ? categoryRef : amountRef);
+                  if (value)
+                    focusField(value === newPayeeId ? categoryRef : accountRef);
                 }}
                 searchable
                 required
@@ -591,7 +622,7 @@ export default function TransactionModal({
                 clearable={true}
                 data={categoryList
                   .filter(
-                    (category) => category.transactionType.value === typeValue
+                    (category) => category.transactionType.value === typeValue,
                   )
                   .map((category) => ({
                     value: category.id + "",
@@ -603,13 +634,13 @@ export default function TransactionModal({
                   options.filter((option) =>
                     option.label
                       .toLocaleLowerCase("tr-TR")
-                      .includes(search.toLocaleLowerCase("tr-TR"))
+                      .includes(search.toLocaleLowerCase("tr-TR")),
                   )
                 }
                 {...form.getInputProps("categoryId")}
                 onChange={(value) => {
                   form.setFieldValue("categoryId", value);
-                  if (value) focusField(amountRef);
+                  if (value) focusField(accountRef);
                 }}
                 searchable
                 nothingFoundMessage={
@@ -622,40 +653,12 @@ export default function TransactionModal({
                 mt="md"
                 size="md"
               />
-              <AmountInput
-                ref={amountRef}
-                label="Amount"
-                placeholder="Transaction Amount"
-                required={true}
-                form={form}
-                fieldName="amount"
-                min={0.01}
-                mt="md"
-                size="md"
-                disabled={isLoading}
-              ></AmountInput>
-              <DateTimePicker
-                label="Date and Time"
-                placeholder="Transaction date and time"
-                dropdownType="modal"
-                highlightToday={true}
-                {...form.getInputProps("dateTime")}
-                onChange={(value) => {
-                  form.setFieldValue("dateTime", value);
-                }}
-                submitButtonProps={{
-                  onClick: () => setTimeout(() => focusField(accountRef), 50),
-                }}
-                required
-                disabled={isLoading}
-                mt="md"
-                size="md"
-              />
               <Select
                 ref={accountRef}
                 label="Account"
                 placeholder="Select Account"
                 description={renderSuggestedAccounts()}
+                descriptionProps={{ component: "div" }}
                 clearable={false}
                 data={accountList.map((account) => ({
                   value: account.id + "",
@@ -670,21 +673,30 @@ export default function TransactionModal({
                   options.filter((option) =>
                     option.label
                       .toLocaleLowerCase("tr-TR")
-                      .includes(search.toLocaleLowerCase("tr-TR"))
+                      .includes(search.toLocaleLowerCase("tr-TR")),
                   )
                 }
                 {...form.getInputProps("sourceAccountId")}
                 onChange={(value) => {
                   form.setFieldValue("sourceAccountId", value);
-                  if (value) focusField(typeValue === "TRA" ? targetAccountRef : notesRef);
+                  if (value)
+                    focusField(
+                      typeValue !== "TRA" ? amountRef : targetAccountRef,
+                    );
                 }}
                 searchable
                 nothingFoundMessage={
-                  <Box>
-                    <Text size="sm">Nothing found.</Text>
+                  <Box component="span" style={{ display: "block" }}>
+                    <Text
+                      size="sm"
+                      component="span"
+                      style={{ display: "block" }}
+                    >
+                      Nothing found.
+                    </Text>
                     <Button
                       variant="subtle"
-                      compact
+                      size="compact-sm"
                       component="a"
                       href="/accounts/create"
                       onClick={(e) => {
@@ -716,9 +728,9 @@ export default function TransactionModal({
                           accountList.find(
                             (account2) =>
                               account2.id + "" ===
-                              form?.getValues()?.sourceAccountId
+                              form?.getValues()?.sourceAccountId,
                           )?.currency?.value &&
-                        account.id + "" !== form?.getValues()?.sourceAccountId
+                        account.id + "" !== form?.getValues()?.sourceAccountId,
                     )
                     .map((account) => ({
                       value: account.id + "",
@@ -733,23 +745,27 @@ export default function TransactionModal({
                     options.filter((option) =>
                       option.label
                         .toLocaleLowerCase("tr-TR")
-                        .includes(search.toLocaleLowerCase("tr-TR"))
+                        .includes(search.toLocaleLowerCase("tr-TR")),
                     )
                   }
                   {...form.getInputProps("targetAccountId")}
                   onChange={(value) => {
                     form.setFieldValue("targetAccountId", value);
-                    if (value) focusField(notesRef);
+                    if (value) focusField(amountRef);
                   }}
                   searchable
                   nothingFoundMessage={
-                    <Box>
-                      <Text size="sm">
+                    <Box component="span" style={{ display: "block" }}>
+                      <Text
+                        size="sm"
+                        component="span"
+                        style={{ display: "block" }}
+                      >
                         No suitable account found of this type.
                       </Text>
                       <Button
                         variant="subtle"
-                        compact
+                        size="compact-sm"
                         component="a"
                         href="/accounts/create"
                         onClick={(e) => {
@@ -769,6 +785,51 @@ export default function TransactionModal({
                   size="md"
                 />
               )}
+              <AmountInput
+                ref={amountRef}
+                label="Amount"
+                placeholder="Transaction Amount"
+                required={true}
+                form={form}
+                fieldName="amount"
+                min={0.01}
+                mt="md"
+                size="md"
+                disabled={isLoading}
+                rightSection={
+                  <Button
+                    variant="subtle"
+                    size="compact-sm"
+                    color="gray"
+                    px={rem(4)}
+                    onClick={() => {
+                      const selectedAccount = accountList.find(
+                        (account) =>
+                          account.id + "" === form.getValues().sourceAccountId,
+                      );
+                      if (selectedAccount) {
+                        form.setFieldValue("amount", selectedAccount.balance);
+                      }
+                    }}
+                  >
+                    All
+                  </Button>
+                }
+              ></AmountInput>
+              <DateTimePicker
+                label="Date and Time"
+                placeholder="Transaction date and time"
+                dropdownType="modal"
+                highlightToday={true}
+                {...form.getInputProps("dateTime")}
+                onChange={(value) => {
+                  form.setFieldValue("dateTime", value);
+                }}
+                required
+                disabled={isLoading}
+                mt="md"
+                size="md"
+              />
               <TextInput
                 ref={notesRef}
                 label="Notes"

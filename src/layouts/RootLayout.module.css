@@ -42,5 +42,17 @@
   @mixin light {
     color: var(--mantine-color-black);
   }
-  cursor: pointer;
+}
+
+.titleLink {
+  text-decoration: none;
+  color: inherit;
+
+  &:visited {
+    color: inherit;
+  }
+
+  &:hover {
+    color: inherit;
+  }
 }

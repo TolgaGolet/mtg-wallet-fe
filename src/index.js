@@ -39,5 +39,5 @@ root.render(
         <App />
       </DatesProvider>
     </ModalsProvider>
-  </MantineProvider>
+  </MantineProvider>,
 );
