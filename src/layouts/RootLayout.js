@@ -47,13 +47,18 @@ export default function RootLayout() {
               size="sm"
             />
             <Group justify="space-between" style={{ flex: 1 }}>
-              <Title
-                order={1}
-                className={classes.title}
-                onClick={() => navigate("/", { replace: false })}
+              <a
+                href="/"
+                onClick={(e) => { e.preventDefault(); navigate("/", { replace: false }); }}
+                className={classes.titleLink}
               >
-                MTG Wallet
-              </Title>
+                <Title
+                  order={1}
+                  className={classes.title}
+                >
+                  MTG Wallet
+                </Title>
+              </a>
               <Group ml="xl" gap={20} visibleFrom="sm">
                 <UnstyledButton
                   onClick={() => navigate("/", { replace: false })}
