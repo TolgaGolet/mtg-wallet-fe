@@ -45,7 +45,7 @@ export default function CreateOrEditPayee() {
 
   useEffect(() => {
     callApi.get("payee/create/enums").then((response) => {
-      setCategoryList(response.data?.categoryList?.content);
+      setCategoryList(response.data?.categoryList);
       if (isEdit) {
         callApi.post("payee/search", { id: payeeId }).then((response) => {
           setPayeeDetails(response.data?.content[0]);

@@ -69,7 +69,8 @@ export const AuthProvider = ({ children }) => {
         showNotification("You have been successfully signed in", "success");
         createDefaults(data?.accessToken);
       }
-    } else if (response?.status === 401 || response?.status === 403) {
+    } else if ([400, 401, 403].includes(response?.status)) {
+      // Wrong credentials / unverified email are 400; 401/403 kept for older backends
       let message = await response.text();
       showNotification(message, "error");
       setErrorData({
