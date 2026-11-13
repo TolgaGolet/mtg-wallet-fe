@@ -145,9 +145,9 @@ export default function TransactionModal({
   const getEnums = () => {
     setIsLoading(true);
     callApi.get("transaction/create/enums").then((response) => {
-      setCategoryList(response.data?.categoryList?.content);
-      setAccountList(response.data?.accountList?.content);
-      isEdit && openInEditMode(response.data?.categoryList?.content);
+      setCategoryList(response.data?.categoryList);
+      setAccountList(response.data?.accountList);
+      isEdit && openInEditMode(response.data?.categoryList);
       setIsLoading(false);
     });
   };
