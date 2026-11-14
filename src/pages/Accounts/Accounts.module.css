@@ -1,4 +1,4 @@
-  .label {
+.label {
   font-family:
     Greycliff CF,
     var(--mantine-font-family);
@@ -38,14 +38,4 @@
   align-items: center;
   color: var(--mantine-color-dark-3);
   margin-left: var(--mantine-spacing-xs);
-}
-
-.accountRow {
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .accountRow:hover {
-    background-color: light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4)) !important;
-  }
 }

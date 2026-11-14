@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   TextInput,
   PasswordInput,
@@ -11,20 +11,28 @@ import {
   Text,
   Container,
   Stack,
-  Progress,
-  List,
-  ThemeIcon,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCheck, IconX } from "@tabler/icons-react";
 import { TotpSetup } from "./TotpSetup";
 import useAxios from "../../utils/useAxios";
 import showNotification from "../../components/showNotification";
-import { hasLength, useForm } from "@mantine/form";
+import { useForm } from "@mantine/form";
+import PasswordStrength from "../../components/PasswordStrength";
 import { SecureDeleteAccount } from "./SecureDeleteAccount";
+import AuthContext from "../../context/AuthContext";
+import LoadError from "../../components/LoadError";
+import useApiQuery from "../../utils/useApiQuery";
+import {
+  requirePassword,
+  validateEmail,
+  validatePassword,
+  validatePersonName,
+  validateSurname,
+} from "../../validation/rules";
 
 const SettingsPage = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const { logoutUser } = useContext(AuthContext);
   const [
     passwordModalOpened,
     { open: openPasswordModal, close: closePasswordModal },
@@ -39,55 +47,6 @@ const SettingsPage = () => {
   ] = useDisclosure(false);
   const callApi = useAxios();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [settingsData, setSettingsData] = useState({});
-  const [passwordRequirements, setPasswordRequirements] = useState({
-    length: false,
-    uppercase: false,
-    lowercase: false,
-    number: false,
-    special: false,
-  });
-
-  const requirementsList = [
-    {
-      label: "8-64 characters long",
-      isMet: passwordRequirements.length,
-    },
-    {
-      label: "Contains an uppercase letter",
-      isMet: passwordRequirements.uppercase,
-    },
-    {
-      label: "Contains a lowercase letter",
-      isMet: passwordRequirements.lowercase,
-    },
-    {
-      label: "Contains a number",
-      isMet: passwordRequirements.number,
-    },
-    {
-      label: "Contains a special character",
-      isMet: passwordRequirements.special,
-    },
-  ];
-
-  const progressValue =
-    (Object.values(passwordRequirements).filter(Boolean).length / 5) * 100;
-
-  useEffect(() => {
-    callApi.get("settings").then((response) => {
-      setSettingsData(response.data);
-      setIsLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setTwoFactorEnabled(settingsData.totpEnabled);
-    userInfoForm.setValues(settingsData);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsData]);
-
   const userInfoForm = useForm({
     validateInputOnBlur: true,
     initialValues: {
@@ -98,17 +57,9 @@ const SettingsPage = () => {
     },
 
     validate: {
-      email: (val) =>
-        val?.length > 100 ||
-        val?.length < 3 ||
-        !/^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$/.test(val)
-          ? "Email must be 3-100 characters and should be valid"
-          : null,
-      name: hasLength({ min: 3, max: 15 }, "Name must be 3-15 characters long"),
-      surname: hasLength(
-        { min: 0, max: 15 },
-        "Surname must be 0-15 characters long"
-      ),
+      email: validateEmail,
+      name: validatePersonName,
+      surname: validateSurname,
     },
   });
 
@@ -121,48 +72,9 @@ const SettingsPage = () => {
     },
 
     validate: {
-      currentPassword: (val) => {
-        if (!val) {
-          return "Password is required";
-        }
-        const length = val.length >= 8 && val.length <= 64;
-        const uppercase = /[A-Z]/.test(val);
-        const lowercase = /[a-z]/.test(val);
-        const number = /\d/.test(val);
-        const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
-        if (!length || !uppercase || !lowercase || !number || !special) {
-          return "Password does not meet requirements";
-        }
-        return null;
-      },
-      newPassword: (val) => {
-        if (!val) {
-          setPasswordRequirements({
-            length: false,
-            uppercase: false,
-            lowercase: false,
-            number: false,
-            special: false,
-          });
-          return "Password is required";
-        }
-        const length = val.length >= 8 && val.length <= 64;
-        const uppercase = /[A-Z]/.test(val);
-        const lowercase = /[a-z]/.test(val);
-        const number = /\d/.test(val);
-        const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
-        setPasswordRequirements({
-          length,
-          uppercase,
-          lowercase,
-          number,
-          special,
-        });
-        if (!length || !uppercase || !lowercase || !number || !special) {
-          return "Password does not meet requirements";
-        }
-        return null;
-      },
+      // The server checks whether the current password is right
+      currentPassword: requirePassword,
+      newPassword: validatePassword,
       confirmPassword: (val, { newPassword }) => {
         if (val !== newPassword) {
           return "Passwords do not match";
@@ -172,71 +84,67 @@ const SettingsPage = () => {
     },
   });
 
+  const settingsQuery = useApiQuery(
+    (signal) => callApi.get("settings", { signal }).then((r) => r.data),
+    [],
+    {
+      onSuccess: (data) => {
+        setTwoFactorEnabled(Boolean(data?.totpEnabled));
+        userInfoForm.setValues(data);
+      },
+    }
+  );
+  const isLoading = settingsQuery.loading || isSaving;
+  const loadError = Boolean(settingsQuery.error);
+
   const handleChangeUserInfo = (request) => {
     callApi
       .post("settings/update", request)
-      .then((response) => {
-        setIsLoading(false);
+      .then(() => {
+        setIsSaving(false);
         showNotification(
           "Settings saved successfully. If you changed your email address, you need to verify your new email",
           "success"
         );
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const handleChangePassword = (request) => {
     callApi
       .post("user/change-password", request)
-      .then((response) => {
-        setIsLoading(false);
+      .then(() => {
+        setIsSaving(false);
         showNotification("Password changed successfully", "success");
         closePasswordModal();
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
+  // Errors propagate so the dialog stays open; the API client has already shown the server's message.
+  // Logging out clears the deleted user's tokens, which the backend has already revoked.
   const handleDeleteAccount = async (credentials) => {
-    setIsLoading(true);
-    try {
-      await callApi.delete("settings/account", {
-        data: credentials,
-      });
-
-      await new Promise((resolve) => {
-        showNotification("Account deleted successfully", "success");
-        // Give the notification a small delay to ensure it's visible
-        setTimeout(resolve, 500);
-      });
-
-      window.location.reload();
-    } catch (error) {
-      console.error("Account deletion error:", error);
-      showNotification(
-        error.response?.data?.message || "Failed to delete account",
-        "error"
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    await callApi.delete("settings/account", { data: credentials });
+    logoutUser("Your account has been deleted");
   };
 
   return (
     <Container size="sm">
       <Box p={{ base: "md", sm: "xl" }}>
-        <Title order={2} mb="md" align="center">
+        <Title order={2} mb="md" ta="center">
           Settings
         </Title>
-        <Stack spacing="sm">
+        {loadError && (
+          <LoadError
+            mb="md"
+            title="Couldn't load your settings"
+            onRetry={settingsQuery.retry}
+          />
+        )}
+        <Stack gap="sm">
           <form
             onSubmit={userInfoForm.onSubmit((e) => {
-              setIsLoading(true);
+              setIsSaving(true);
               handleChangeUserInfo(e);
             })}
           >
@@ -257,15 +165,21 @@ const SettingsPage = () => {
               {...userInfoForm.getInputProps("surname")}
               size="md"
             />
-            <Button type="submit" loading={isLoading} mt="lg" size="md">
+            <Button
+              type="submit"
+              loading={isLoading}
+              disabled={loadError}
+              mt="lg"
+              size="md"
+            >
               Save Settings
             </Button>
           </form>
-          <Group position="apart">
-            <Text weight={500}>Two-Factor Authentication (TOTP)</Text>
+          <Group justify="space-between">
+            <Text fw={500}>Two-Factor Authentication (TOTP)</Text>
             <Switch
               checked={twoFactorEnabled}
-              disabled={isLoading}
+              disabled={isLoading || loadError}
               onChange={() => openTwoFactorModal()}
               size="md"
             />
@@ -285,10 +199,10 @@ const SettingsPage = () => {
           title="Change Password"
           closeOnClickOutside={false}
         >
-          <Stack spacing="sm">
+          <Stack gap="sm">
             <form
               onSubmit={changePasswordForm.onSubmit((e) => {
-                setIsLoading(true);
+                setIsSaving(true);
                 handleChangePassword(e);
               })}
             >
@@ -313,36 +227,7 @@ const SettingsPage = () => {
                 required
                 size="md"
               />
-              <Progress
-                value={progressValue}
-                size="sm"
-                color={progressValue === 100 ? "green" : "blue"}
-                mt="xs"
-              />
-              <List mt="xs" type="unordered">
-                {requirementsList.map((req) => (
-                  <List.Item
-                    key={req.label}
-                    icon={
-                      <ThemeIcon
-                        color={req.isMet ? "green" : "red"}
-                        size={16}
-                        radius="xl"
-                      >
-                        {req.isMet ? (
-                          <IconCheck size={10} />
-                        ) : (
-                          <IconX size={10} />
-                        )}
-                      </ThemeIcon>
-                    }
-                  >
-                    <Text size="sm" c={req.isMet ? "gray" : "red"}>
-                      {req.label}
-                    </Text>
-                  </List.Item>
-                ))}
-              </List>
+              <PasswordStrength value={changePasswordForm.values.newPassword} />
               <Button type="submit" loading={isLoading} mt="lg" size="md">
                 Change Password
               </Button>
@@ -359,6 +244,7 @@ const SettingsPage = () => {
           <TotpSetup
             close={closeTwoFactorModal}
             twoFactorEnabled={twoFactorEnabled}
+            onChange={setTwoFactorEnabled}
           />
         </Modal>
       </Box>

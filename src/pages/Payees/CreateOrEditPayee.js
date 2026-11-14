@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -16,105 +16,95 @@ import { modals } from "@mantine/modals";
 import { useNavigate, useParams } from "react-router-dom";
 import showNotification from "../../components/showNotification";
 import PageTitle from "../../components/PageTitle";
+import LoadError from "../../components/LoadError";
+import useApiQuery from "../../utils/useApiQuery";
+import { validateEntityName } from "../../validation/rules";
 
 export default function CreateOrEditPayee() {
   const { payeeId } = useParams();
   const callApi = useAxios();
   const navigate = useNavigate();
-  let [isLoading, setIsLoading] = useState(true);
-  let [categoryList, setCategoryList] = useState([]);
-  let isEdit = payeeId !== "create";
-  let [payeeDetails, setPayeeDetails] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const isEdit = payeeId !== "create";
 
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
       name: "",
-      categoryName: null,
+      categoryId: null,
     },
 
     validate: {
-      name: (val) =>
-        val?.length > 50 ||
-        val?.length < 3 ||
-        !/^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(val)
-          ? "Name must be 3-50 characters and contain only letters, numbers and spaces"
-          : null,
+      name: validateEntityName,
     },
   });
 
-  useEffect(() => {
-    callApi.get("payee/create/enums").then((response) => {
-      setCategoryList(response.data?.categoryList);
-      if (isEdit) {
-        callApi.post("payee/search", { id: payeeId }).then((response) => {
-          setPayeeDetails(response.data?.content[0]);
-          setIsLoading(false);
-        });
-      }
-      !isEdit && setIsLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Enums and (when editing) the payee itself load in parallel; onSuccess fills the form
+  const formQuery = useApiQuery(
+    async (signal) => {
+      const [enums, details] = await Promise.all([
+        callApi.get("payee/create/enums", { signal }).then((r) => r.data),
+        isEdit
+          ? callApi
+              .post("payee/search", { id: payeeId }, { signal })
+              .then((r) => r.data?.content?.[0] ?? {})
+          : null,
+      ]);
+      return { enums, details };
+    },
+    [payeeId],
+    {
+      onSuccess: ({ details }) => {
+        if (details) {
+          form.setValues({
+            ...details,
+            categoryId: details.categoryId ? details.categoryId + "" : null,
+          });
+        }
+      },
+    }
+  );
+  const isLoading = formQuery.loading || isSaving;
+  const loadError = Boolean(formQuery.error);
+  const categoryList = formQuery.data?.enums?.categoryList ?? [];
 
-  useEffect(() => {
-    let formValues = {
-      ...payeeDetails,
-      categoryName: payeeDetails?.categoryId + "",
-    };
-    form.setValues(formValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payeeDetails]);
-
-  const createPayee = (request) => {
-    request = {
-      ...request,
-      categoryId: request?.categoryName,
-    };
+  // Only the fields the backend's request classes accept
+  const createPayee = (values) => {
     callApi
-      .post("payee/create", request)
-      .then((response) => {
+      .post("payee/create", {
+        name: values.name,
+        categoryId: values.categoryId ? parseInt(values.categoryId) : null,
+      })
+      .then(() => {
         navigate("/payees", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Payee created successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
-  const editPayee = (request) => {
-    request = {
-      ...request,
-      categoryId: request?.categoryName,
-    };
+  // A payee's category can't be changed, so an update only sends the name
+  const editPayee = (values) => {
     callApi
-      .put(`payee/update/${payeeId}`, request)
-      .then((response) => {
+      .put(`payee/update/${payeeId}`, { name: values.name })
+      .then(() => {
         navigate("/payees", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Payee updated successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const deletePayee = () => {
-    setIsLoading(true);
+    setIsSaving(true);
     callApi
       .delete(`payee/delete/${payeeId}`)
-      .then((response) => {
+      .then(() => {
         navigate("/payees", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Payee deleted successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const openDeleteConfirmModal = () => {
@@ -142,13 +132,20 @@ export default function CreateOrEditPayee() {
         isBackButtonVisible={true}
         value={isEdit ? "Edit Payee" : "Create a New Payee"}
       />
+      {loadError && (
+        <LoadError
+          mb="md"
+          title="Couldn't load the form"
+          onRetry={formQuery.retry}
+        />
+      )}
       <Box pos="relative">
         <LoadingOverlay visible={isLoading} />
-        <Fieldset legend="Payee information" disabled={isLoading}>
+        <Fieldset legend="Payee information" disabled={isLoading || loadError}>
           <FocusTrap active={false}>
             <form
               onSubmit={form.onSubmit((e) => {
-                setIsLoading(true);
+                setIsSaving(true);
                 isEdit ? editPayee(e) : createPayee(e);
               })}
             >
@@ -169,7 +166,7 @@ export default function CreateOrEditPayee() {
                     ? category.name + " (" + category.parentCategoryName + ")"
                     : category.name,
                 }))}
-                {...form.getInputProps("categoryName")}
+                {...form.getInputProps("categoryId")}
                 required
                 disabled={isEdit}
                 searchable

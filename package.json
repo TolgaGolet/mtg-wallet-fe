@@ -3,47 +3,42 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@mantine/carousel": "^7.2.2",
-    "@mantine/code-highlight": "^7.2.2",
     "@mantine/core": "^7.2.2",
     "@mantine/dates": "^7.2.2",
-    "@mantine/dropzone": "^7.2.2",
     "@mantine/form": "^7.2.2",
     "@mantine/hooks": "^7.2.2",
     "@mantine/modals": "^7.2.2",
     "@mantine/notifications": "^7.2.2",
-    "@mantine/nprogress": "^7.2.2",
-    "@mantine/spotlight": "^7.2.2",
-    "@mantine/tiptap": "^7.2.2",
     "@tabler/icons-react": "^2.41.0",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "@tiptap/extension-link": "^2.1.12",
-    "@tiptap/react": "^2.1.12",
-    "@tiptap/starter-kit": "^2.1.12",
-    "axios": "^1.3.5",
+    "axios": "^1.21.1",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.10",
-    "dotenv": "^16.0.3",
-    "embla-carousel-react": "^7.1.0",
     "jwt-decode": "^3.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.10.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "react-router-dom": "^6.30.6"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "format": "prettier --write \"src/**/*.{js,css}\"",
+    "format:check": "prettier --check \"src/**/*.{js,css}\""
   },
   "eslintConfig": {
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "prefer-const": "warn"
+    }
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^axios$": "axios/dist/node/axios.cjs"
+    }
   },
   "browserslist": {
     "production": [
@@ -58,8 +53,13 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
     "postcss": "^8.4.31",
     "postcss-preset-mantine": "^1.11.0",
-    "postcss-simple-vars": "^7.0.1"
+    "postcss-simple-vars": "^7.0.1",
+    "prettier": "3.6.2",
+    "react-scripts": "^5.0.1"
   }
 }

@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
-import showNotification from "../../components/showNotification";
+import { requirePassword, validateTotp } from "../../validation/rules";
 
 export function SecureDeleteAccount({
   opened,
@@ -27,14 +27,8 @@ export function SecureDeleteAccount({
       ...(twoFactorEnabled && { totpCode: "" }),
     },
     validate: {
-      password: (val) => (!val ? "Password is required" : null),
-      ...(twoFactorEnabled && {
-        totpCode: (val) => {
-          if (!val) return "TOTP code is required";
-          if (!/^\d{6}$/.test(val)) return "TOTP code must be 6 digits";
-          return null;
-        },
-      }),
+      password: requirePassword,
+      ...(twoFactorEnabled && { totpCode: validateTotp }),
     },
   });
 
@@ -48,11 +42,9 @@ export function SecureDeleteAccount({
 
       await onDelete(deleteCredentials);
       onClose();
-    } catch (error) {
-      showNotification(
-        error.response?.data?.message || "Failed to delete account",
-        "error"
-      );
+    } catch {
+      // Keep the dialog open so the user can correct the password or code.
+      // The API client has already shown the server's error message.
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +58,7 @@ export function SecureDeleteAccount({
       closeOnClickOutside={false}
     >
       <form onSubmit={form.onSubmit(handleSubmit)}>
-        <Stack spacing="md">
+        <Stack gap="md">
           <Alert
             icon={<IconAlertCircle size="1rem" />}
             title="Warning!"
@@ -100,7 +92,7 @@ export function SecureDeleteAccount({
             {twoFactorEnabled && " and 2FA code"} to confirm account deletion
           </Text>
 
-          <Group position="right" mt="md">
+          <Group justify="flex-end" mt="md">
             <Button variant="outline" onClick={onClose} size="md">
               Cancel
             </Button>

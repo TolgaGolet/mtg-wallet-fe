@@ -46,4 +46,4 @@ Live demo at: https://mtgwallet.onrender.com
 
 ### Configuration
 
-1. Uncomment .env for local use
+1. Copy `.env.example` to `.env` (`cp .env.example .env`) and adjust the values for local use. `.env` is gitignored; production values come from the hosting provider's environment settings.

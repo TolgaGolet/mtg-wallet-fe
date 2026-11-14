@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -16,122 +16,113 @@ import { modals } from "@mantine/modals";
 import { useNavigate, useParams } from "react-router-dom";
 import showNotification from "../../components/showNotification";
 import PageTitle from "../../components/PageTitle";
+import LoadError from "../../components/LoadError";
+import useApiQuery from "../../utils/useApiQuery";
+import { validateEntityName } from "../../validation/rules";
 
 export default function CreateOrEditCategory() {
   const { categoryId } = useParams();
   const callApi = useAxios();
   const navigate = useNavigate();
-  let [isLoading, setIsLoading] = useState(true);
-  let [transactionTypes, setTransactionTypes] = useState([]);
-  let [parentCategoryList, setParentCategoryList] = useState([]);
-  let isEdit = categoryId !== "create";
-  let [categoryDetails, setCategoryDetails] = useState({});
-  let [isParentCategoryDisabled, setIsParentCategoryDisabled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const isEdit = categoryId !== "create";
 
   const form = useForm({
     validateInputOnBlur: true,
     initialValues: {
       name: "",
       transactionTypeValue: "EXP",
-      parentCategoryName: null,
+      parentCategoryId: null,
     },
 
     validate: {
-      name: (val) =>
-        val?.length > 50 ||
-        val?.length < 3 ||
-        !/^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(val)
-          ? "Name must be 3-50 characters and contain only letters, numbers and spaces"
-          : null,
+      name: validateEntityName,
     },
   });
 
-  useEffect(() => {
-    callApi.get("category/create/enums").then((response) => {
-      setTransactionTypes(response.data?.transactionTypes);
-      setParentCategoryList(
-        response.data?.parentCategoryList?.filter((item) => {
-          return (
-            item?.value !== categoryId &&
-            item?.parentCategoryId + "" !== categoryId
-          );
-        })
-      );
-      if (isEdit) {
-        callApi.post("category/search", { id: categoryId }).then((response) => {
-          setCategoryDetails(response.data?.content[0]);
-          setIsLoading(false);
-        });
-      }
-      !isEdit && setIsLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Enums and (when editing) the category itself load in parallel; onSuccess fills the form
+  const formQuery = useApiQuery(
+    async (signal) => {
+      const [enums, details] = await Promise.all([
+        callApi.get("category/create/enums", { signal }).then((r) => r.data),
+        isEdit
+          ? callApi
+              .post("category/search", { id: categoryId }, { signal })
+              .then((r) => r.data?.content?.[0] ?? {})
+          : null,
+      ]);
+      return { enums, details };
+    },
+    [categoryId],
+    {
+      onSuccess: ({ details }) => {
+        if (details) {
+          form.setValues({
+            ...details,
+            transactionTypeValue: details.transactionType?.value || "EXP",
+            parentCategoryId: details.parentCategoryId
+              ? details.parentCategoryId + ""
+              : null,
+          });
+        }
+      },
+    }
+  );
+  const isLoading = formQuery.loading || isSaving;
+  // A category that already has children can't get a parent itself (one nesting level)
+  const isParentCategoryDisabled = Boolean(formQuery.data?.details?.isParent);
+  const loadError = Boolean(formQuery.error);
+  const transactionTypes = formQuery.data?.enums?.transactionTypes ?? [];
+  // A category can't be its own parent, and its children can't become its parent
+  const parentCategoryList = (
+    formQuery.data?.enums?.parentCategoryList ?? []
+  ).filter(
+    (item) =>
+      item?.value !== categoryId && item?.parentCategoryId + "" !== categoryId
+  );
 
-  useEffect(() => {
-    let formValues = {
-      ...categoryDetails,
-      transactionTypeValue: categoryDetails?.transactionType?.value || "EXP",
-      parentCategoryName: categoryDetails?.parentCategoryId
-        ? categoryDetails?.parentCategoryId + ""
-        : null,
-    };
-    form.setValues(formValues);
-    setIsParentCategoryDisabled(categoryDetails?.parent);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryDetails]);
+  // Only the fields the backend's request classes accept
+  const toId = (value) => (value ? parseInt(value) : null);
 
-  const createCategory = (request) => {
-    request = {
-      ...request,
-      parentCategoryId: request?.parentCategoryName,
-      parentCategoryName: null,
-    };
+  const createCategory = (values) => {
     callApi
-      .post("category/create", request)
-      .then((response) => {
+      .post("category/create", {
+        name: values.name,
+        transactionTypeValue: values.transactionTypeValue,
+        parentCategoryId: toId(values.parentCategoryId),
+      })
+      .then(() => {
         navigate("/categories", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Category created successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
-  const editCategory = (request) => {
-    request = {
-      ...request,
-      parentCategoryId: request?.parentCategoryName,
-      parentCategoryName: null,
-    };
+  const editCategory = (values) => {
     callApi
-      .put(`category/update/${categoryId}`, request)
-      .then((response) => {
+      .put(`category/update/${categoryId}`, {
+        name: values.name,
+        parentCategoryId: toId(values.parentCategoryId),
+      })
+      .then(() => {
         navigate("/categories", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Category updated successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const deleteCategory = () => {
-    setIsLoading(true);
+    setIsSaving(true);
     callApi
       .delete(`category/delete/${categoryId}`)
-      .then((response) => {
+      .then(() => {
         navigate("/categories", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Category deleted successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const openDeleteConfirmModal = () => {
@@ -159,13 +150,23 @@ export default function CreateOrEditCategory() {
         isBackButtonVisible={true}
         value={isEdit ? "Edit Category" : "Create a New Category"}
       />
+      {loadError && (
+        <LoadError
+          mb="md"
+          title="Couldn't load the form"
+          onRetry={formQuery.retry}
+        />
+      )}
       <Box pos="relative">
         <LoadingOverlay visible={isLoading} />
-        <Fieldset legend="Category information" disabled={isLoading}>
+        <Fieldset
+          legend="Category information"
+          disabled={isLoading || loadError}
+        >
           <FocusTrap active={false}>
             <form
               onSubmit={form.onSubmit((e) => {
-                setIsLoading(true);
+                setIsSaving(true);
                 isEdit ? editCategory(e) : createCategory(e);
               })}
             >
@@ -182,7 +183,7 @@ export default function CreateOrEditCategory() {
                 clearable={true}
                 data={transactionTypes}
                 onSelect={(value) => {
-                  form.setFieldValue("parentCategoryName", null);
+                  form.setFieldValue("parentCategoryId", null);
                 }}
                 {...form.getInputProps("transactionTypeValue")}
                 searchable
@@ -206,7 +207,7 @@ export default function CreateOrEditCategory() {
                     parentCategory?.transactionType?.value ===
                     form.getValues()?.transactionTypeValue
                 )}
-                {...form.getInputProps("parentCategoryName")}
+                {...form.getInputProps("parentCategoryId")}
                 searchable
                 nothingFoundMessage="Nothing found..."
                 mt="md"

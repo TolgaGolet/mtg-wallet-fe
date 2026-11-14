@@ -1,218 +1,128 @@
-import { createContext, useState, useEffect, useMemo } from "react";
+import { createContext, useState, useEffect, useMemo, useRef } from "react";
 import jwt_decode from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import showNotification from "../components/showNotification";
+import { useMantineColorScheme } from "@mantine/core";
 import {
-  Button,
-  Center,
-  Group,
-  rem,
-  Text,
-  useMantineColorScheme,
-} from "@mantine/core";
-import { modals } from "@mantine/modals";
-import { IconCheck } from "@tabler/icons-react";
+  api,
+  configureAuth,
+  getErrorMessage,
+  publicApi,
+  readTokens,
+} from "../api/client";
+import { getErrorCode, NOT_VERIFIED_EMAIL } from "../api/errorCodes";
 
 const AuthContext = createContext();
 const authTokensLocalStorageKey =
   process.env.REACT_APP_AUTH_TOKENS_LOCAL_STORAGE_KEY;
 
+const decodeUser = (tokens) => {
+  try {
+    return tokens?.accessToken ? jwt_decode(tokens.accessToken) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Holds the session: the tokens (also in localStorage) and the decoded `user`.
+ * The functions return results instead of touching page state, so each page owns its own UI.
+ */
 export const AuthProvider = ({ children }) => {
-  let [authTokens, setAuthTokens] = useState(() =>
-    localStorage.getItem(authTokensLocalStorageKey)
-      ? JSON.parse(localStorage.getItem(authTokensLocalStorageKey))
-      : null
-  );
-  let [user, setUser] = useState(() =>
-    localStorage.getItem(authTokensLocalStorageKey)
-      ? jwt_decode(localStorage.getItem(authTokensLocalStorageKey))
-      : null
-  );
-  let [isLoading, setIsLoading] = useState(true);
+  const [authTokens, setAuthTokens] = useState(readTokens);
+  // Derived, so it can never disagree with the tokens
+  const user = useMemo(() => decodeUser(authTokens), [authTokens]);
   const navigate = useNavigate();
   const { clearColorScheme } = useMantineColorScheme();
 
-  const loginUser = async (
-    e,
-    setIsLoading,
-    setErrorData,
-    setIsTotpRequired
-  ) => {
-    let loginUrl = !e?.verificationCode
-      ? `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGIN_URL}`
-      : `${process.env.REACT_APP_API_BASE_URL}auth/totp/verify`;
-    let response = await fetch(loginUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: e?.username,
-        password: e?.password,
-        verificationCode: e?.verificationCode,
-      }),
-    });
-    if (response?.status === 200) {
-      let data = await response?.json();
-      if (data?.totpRequired) {
-        setErrorData({
-          isErrorState: false,
-          isEmailVerificationRequired: false,
-          message: "",
-        });
-        setIsTotpRequired(true);
-      } else {
-        setAuthTokens(data);
-        setUser(jwt_decode(data?.accessToken));
-        localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(data));
-        navigate("/", { replace: true });
-        showNotification("You have been successfully signed in", "success");
-        createDefaults(data?.accessToken);
-      }
-    } else if ([400, 401, 403].includes(response?.status)) {
-      // Wrong credentials / unverified email are 400; 401/403 kept for older backends
-      let message = await response.text();
-      showNotification(message, "error");
-      setErrorData({
-        isErrorState: true,
-        isEmailVerificationRequired: message.includes("Email is not verified."),
-        message: message,
-      });
-    } else if (response?.status === 429) {
-      showNotification(
-        "Too many requests. Try again after a few minutes",
-        "error"
-      );
-    } else {
-      let message = await response.text();
-      showNotification("Something went wrong! " + message, "error");
-    }
-    setIsLoading(false);
+  const storeTokens = (tokens) => {
+    localStorage.setItem(authTokensLocalStorageKey, JSON.stringify(tokens));
+    setAuthTokens(tokens);
   };
 
-  const logoutUser = () => {
-    fetch(
-      `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_LOGOUT_URL}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authTokens?.accessToken}`,
-        },
+  /**
+   * Signs in with `{ username, password }`, or `{ verificationCode }` (plus both) for the TOTP step.
+   * Resolves to `{ status: "ok" }`, `{ status: "totp" }` (a code is needed next), or
+   * `{ status: "error", message, isEmailVerificationRequired }`. Error toasts come from the client.
+   */
+  const loginUser = async ({ username, password, verificationCode }) => {
+    const url = verificationCode
+      ? "auth/totp/verify"
+      : process.env.REACT_APP_LOGIN_URL;
+    try {
+      const { data } = await publicApi.post(url, {
+        username,
+        password,
+        verificationCode,
+      });
+      if (data?.totpRequired) {
+        return { status: "totp" };
       }
-    );
-    setAuthTokens(null);
-    setUser(null);
+      storeTokens(data);
+      // Best effort: creates the default payees for a first login
+      api.post("payee/create-defaults").catch(() => {});
+      return { status: "ok" };
+    } catch (error) {
+      return {
+        status: "error",
+        message: getErrorMessage(error, ""),
+        isEmailVerificationRequired:
+          getErrorCode(error.response) === NOT_VERIFIED_EMAIL,
+      };
+    }
+  };
+
+  const logoutUser = (message = "You have been successfully logged out!") => {
+    const accessToken = readTokens()?.accessToken;
+    // Best effort: the tokens may already be revoked (e.g. after account deletion)
+    publicApi
+      .post(
+        process.env.REACT_APP_LOGOUT_URL,
+        {},
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          silentErrors: true,
+        }
+      )
+      .catch(() => {});
     localStorage.removeItem(authTokensLocalStorageKey);
+    setAuthTokens(null);
     clearColorScheme();
     navigate("/login", { replace: true });
-    showNotification("You have been successfully logged out!", "success");
+    showNotification(message, "success");
   };
 
-  const createDefaults = (accessToken) => {
-    fetch(`${process.env.REACT_APP_API_BASE_URL}payee/create-defaults`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+  /** Registers a user. Rejects with the axios error on failure (the client has shown the toast). */
+  const signUpUser = ({ username, email, name, surname, password }) =>
+    publicApi.post(process.env.REACT_APP_SIGN_UP_URL, {
+      username,
+      email,
+      name,
+      surname,
+      password,
     });
-  };
 
-  const signUpUser = async (e, setIsLoading, setErrorData) => {
-    let response = await fetch(
-      `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_SIGN_UP_URL}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: e?.username,
-          email: e?.email,
-          name: e?.name,
-          surname: e?.surname,
-          password: e?.password,
-        }),
-      }
-    );
-    if (response?.status === 200) {
-      modals.open({
-        title: "Registration successful",
-        centered: true,
-        children: (
-          <>
-            <Center>
-              <IconCheck
-                style={{
-                  width: rem(125),
-                  height: rem(125),
-                  color: "teal",
-                }}
-              />
-            </Center>
-            <Text>
-              We have sent an email verification link to your email inbox.
-              Please click the link to verify your email address. Then you will
-              be able to login.
-            </Text>
-            <Group position="apart" justify="flex-end">
-              <Button
-                onClick={() => {
-                  modals.closeAll();
-                  navigate("/", { replace: true });
-                }}
-                mt="md"
-              >
-                Okay
-              </Button>
-            </Group>
-          </>
-        ),
-        withCloseButton: false,
-        closeOnClickOutside: false,
-        closeOnEscape: false,
-        size: "lg",
-      });
-    } else if (response?.status === 409) {
-      let message = await response.text();
-      showNotification(message, "error");
-      setErrorData({ isErrorState: true, message: message });
-    } else if (response?.status === 429) {
-      showNotification(
-        "Too many requests. Try again after a few minutes",
-        "error"
-      );
-    } else {
-      let message = await response.text();
-      showNotification("Something went wrong! " + message, "error");
-    }
-    setIsLoading(false);
-  };
-
-  const contextData = useMemo(
-    () => ({
-      user: user,
-      authTokens: authTokens,
-      setAuthTokens: setAuthTokens,
-      setUser: setUser,
-      loginUser: loginUser,
-      logoutUser: logoutUser,
-      signUpUser: signUpUser,
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, authTokens]
-  );
-
+  // The API client refreshes tokens outside React; keep it pointed at the latest logout
+  const logoutUserRef = useRef(logoutUser);
+  logoutUserRef.current = logoutUser;
   useEffect(() => {
-    if (authTokens) {
-      setUser(jwt_decode(authTokens.accessToken));
-    }
-    setIsLoading(false);
-  }, [authTokens, isLoading]);
+    configureAuth({
+      onTokensRefreshed: setAuthTokens,
+      onAuthFailure: () => logoutUserRef.current(),
+    });
+  }, []);
+
+  // Not memoized: the provider only re-renders when its own auth state changes
+  const contextData = {
+    user,
+    authTokens,
+    loginUser,
+    logoutUser,
+    signUpUser,
+  };
 
   return (
-    <AuthContext.Provider value={contextData}>
-      {isLoading ? null : children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextData}>{children}</AuthContext.Provider>
   );
 };
 

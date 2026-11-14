@@ -1,4 +1,4 @@
-import { Group, Title } from "@mantine/core";
+import { ActionIcon, Group, Title } from "@mantine/core";
 import { IconArrowLeft } from "@tabler/icons-react";
 
 export default function PageTitle({
@@ -9,11 +9,15 @@ export default function PageTitle({
 }) {
   return (
     <Group justify="flex-start" align="center" gap="xs" mb="md" {...props}>
-      {!isBackButtonVisible || (
-        <IconArrowLeft
+      {isBackButtonVisible && (
+        <ActionIcon
+          variant="subtle"
+          color="gray"
           onClick={() => window.history.back()}
-          style={{ cursor: "pointer" }}
-        />
+          aria-label="Go back"
+        >
+          <IconArrowLeft />
+        </ActionIcon>
       )}
       <Title order={titleOrder || 2}>{value}</Title>
     </Group>

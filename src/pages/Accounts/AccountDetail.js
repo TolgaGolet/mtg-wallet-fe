@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActionIcon,
   Box,
@@ -17,37 +17,46 @@ import FieldTextData from "../../components/FieldTextData";
 import { IconPencil } from "@tabler/icons-react";
 import TransactionRow from "../../components/TransactionRow";
 import PageTitle from "../../components/PageTitle";
-import TransactionModal from "../Home/TransactionModal";
+import LoadError from "../../components/LoadError";
+import ListSkeleton from "../../components/ListSkeleton";
+import useApiQuery from "../../utils/useApiQuery";
+import TransactionModal from "../../components/TransactionModal/TransactionModal";
 
 export default function AccountDetail() {
   const { accountId } = useParams();
   const callApi = useAxios();
   const navigate = useNavigate();
-  let [isAccountDetailsLoading, setIsAccountDetailsLoading] = useState(true);
-  let [isLatestTransactionsLoading, setIsLatestTransactionsLoading] =
-    useState(true);
-  let [accountDetails, setAccountDetails] = useState({});
-  let [recentTransactions, setRecentTransactions] = useState([]);
-  let [isTransactionModelOpened, setIsTransactionModelOpened] = useState(false);
-  let [displayedTransactionId, setDisplayedTransactionId] = useState(null);
+  const [isTransactionModalOpened, setIsTransactionModalOpened] =
+    useState(false);
+  const [displayedTransactionId, setDisplayedTransactionId] = useState(null);
 
-  useEffect(() => {
-    callApi.post("account/search", { id: accountId }).then((response) => {
-      setAccountDetails(response.data?.content[0]);
-      setIsAccountDetailsLoading(false);
+  // Independent loads, so a failure in one still shows the other
+  const accountQuery = useApiQuery(
+    (signal) =>
+      callApi
+        .post("account/search", { id: accountId }, { signal })
+        .then((response) => response.data?.content?.[0] ?? {}),
+    [accountId]
+  );
+  const transactionsQuery = useApiQuery(
+    (signal) =>
       callApi
         .post(
           "transaction/search",
           { sourceAccountId: accountId, targetAccountId: accountId },
-          { params: { pageNo: 0 } }
+          { params: { pageNo: 0 }, signal }
         )
-        .then((response) => {
-          setRecentTransactions(response.data?.content);
-          setIsLatestTransactionsLoading(false);
-        });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+        .then((response) => response.data?.content ?? []),
+    [accountId]
+  );
+  const accountDetails = accountQuery.data ?? {};
+  const recentTransactions = transactionsQuery.data ?? [];
+
+  // A saved transaction changes the balance and the list, so refresh both
+  const onTransactionSaved = () => {
+    accountQuery.retry();
+    transactionsQuery.retry();
+  };
 
   const renderSkeletonAccountDetails = () => {
     return <Skeleton height={272} mt={10} />;
@@ -75,7 +84,7 @@ export default function AccountDetail() {
           <ActionIcon
             variant="default"
             size="lg"
-            aria-label="Edit"
+            aria-label="Edit account"
             onClick={() => {
               navigate(`/accounts/create-or-edit/${accountDetails?.id}`, {
                 replace: false,
@@ -89,26 +98,13 @@ export default function AccountDetail() {
     );
   };
 
-  const renderSkeletonRecentTransactions = () => {
-    return (
-      <>
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-      </>
-    );
-  };
-
   const renderRecentTransactions = () => {
     return recentTransactions.map((transaction) => (
       <TransactionRow
         key={transaction.id}
         payee={transaction.payee?.name}
         category={transaction.payee?.category?.name}
-        parentCategory={transaction.payee?.category?.parentCategory?.name}
+        parentCategory={transaction.payee?.category?.parentCategoryName}
         typeValue={transaction.type?.value}
         amount={transaction.amount}
         currencyValue={accountDetails?.currency?.value}
@@ -122,26 +118,41 @@ export default function AccountDetail() {
 
   const onClickTransactionRow = (id) => {
     setDisplayedTransactionId(id);
-    setIsTransactionModelOpened(true);
+    setIsTransactionModalOpened(true);
   };
 
   return (
     <Container size="lg" px={0}>
       <PageTitle isBackButtonVisible={true} value="Account Details" />
-      {isAccountDetailsLoading
-        ? renderSkeletonAccountDetails()
-        : renderAccountDetails()}
+      {accountQuery.loading ? (
+        renderSkeletonAccountDetails()
+      ) : accountQuery.error ? (
+        <LoadError
+          title="Couldn't load the account"
+          onRetry={accountQuery.retry}
+        />
+      ) : (
+        renderAccountDetails()
+      )}
       <Title order={2} mb="md" mt="md">
         Recent Transactions
       </Title>
-      {isLatestTransactionsLoading
-        ? renderSkeletonRecentTransactions()
-        : renderRecentTransactions()}
+      {transactionsQuery.loading ? (
+        <ListSkeleton />
+      ) : transactionsQuery.error ? (
+        <LoadError
+          title="Couldn't load recent transactions"
+          onRetry={transactionsQuery.retry}
+        />
+      ) : (
+        renderRecentTransactions()
+      )}
       <TransactionModal
-        opened={isTransactionModelOpened}
-        close={() => setIsTransactionModelOpened(false)}
+        opened={isTransactionModalOpened}
+        close={() => setIsTransactionModalOpened(false)}
         loadedRecentTransactions={recentTransactions}
         transactionId={displayedTransactionId}
+        onSaved={onTransactionSaved}
       ></TransactionModal>
     </Container>
   );

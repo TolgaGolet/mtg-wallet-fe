@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   Text,
@@ -22,27 +22,31 @@ import {
 } from "@tabler/icons-react";
 import useAxios from "../../utils/useAxios";
 import showNotification from "../../components/showNotification";
+import LoadError from "../../components/LoadError";
+import useApiQuery from "../../utils/useApiQuery";
+import { validateTotp } from "../../validation/rules";
 
-export function TotpSetup({ close, twoFactorEnabled }) {
-  const [qrData, setQrData] = useState(null);
+/** `onChange(enabled)` tells the parent the new 2FA state, so it can update without a reload. */
+export function TotpSetup({ close, twoFactorEnabled, onChange }) {
   const [verificationCode, setVerificationCode] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [isDisabling, setIsDisabling] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const callApi = useAxios();
   const [disableCode, setDisableCode] = useState("");
   const [validationError, setValidationError] = useState(null);
-
-  useEffect(() => {
-    if (twoFactorEnabled) {
-      setLoading(false);
-      return;
-    }
-    callApi.post("auth/totp/setup", {}).then((response) => {
-      setQrData(response?.data);
-      setLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Only a user without 2FA needs a new secret and QR code
+  const setupQuery = useApiQuery(
+    (signal) =>
+      twoFactorEnabled
+        ? Promise.resolve(null)
+        : callApi
+            .post("auth/totp/setup", {}, { signal })
+            .then((response) => response?.data),
+    [twoFactorEnabled]
+  );
+  const qrData = setupQuery.data;
+  const loading = setupQuery.loading || isDisabling;
+  const loadError = Boolean(setupQuery.error);
 
   const verifyAndEnableTotp = (e) => {
     e.preventDefault();
@@ -53,7 +57,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
         setVerifying(false);
         showNotification("2FA has been successfully enabled!", "success");
         close();
-        window.location.reload();
+        onChange?.(true);
       })
       .catch(() => {
         setVerifying(false);
@@ -62,38 +66,24 @@ export function TotpSetup({ close, twoFactorEnabled }) {
 
   const handleDisable2FA = (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsDisabling(true);
     callApi
       .post("auth/totp/disable", { code: disableCode })
       .then(() => {
         showNotification("2FA has been successfully disabled!", "success");
         close();
-        window.location.reload();
+        onChange?.(false);
       })
       .catch(() => {
-        setLoading(false);
+        setIsDisabling(false);
       });
-  };
-
-  const validateVerificationCode = (val) => {
-    if (!/^\d{6}$/.test(val)) {
-      return "Verification code must be a 6-digit number";
-    }
-    return null;
-  };
-
-  const validateDisableCode = (val) => {
-    if (!/^\d{6}$/.test(val)) {
-      return "Disable code must be a 6-digit number";
-    }
-    return null;
   };
 
   if (twoFactorEnabled) {
     return (
       <Card shadow="sm" padding="lg" radius="md" withBorder>
-        <Stack spacing="md">
-          <Text size="lg" weight={500}>
+        <Stack gap="md">
+          <Text size="lg" fw={500}>
             Two-Factor Authentication Status
           </Text>
 
@@ -108,15 +98,15 @@ export function TotpSetup({ close, twoFactorEnabled }) {
           </Alert>
 
           <form onSubmit={handleDisable2FA}>
-            <Stack spacing="md">
+            <Stack gap="md">
               <TextInput
                 label="Current 2FA Code"
                 placeholder="Enter your 6-digit code"
                 value={disableCode}
                 onChange={(event) => {
-                  let value = event.currentTarget.value;
+                  const value = event.currentTarget.value;
                   setDisableCode(value);
-                  const error = validateDisableCode(value);
+                  const error = validateTotp(value);
                   setValidationError(error);
                 }}
                 maxLength={6}
@@ -126,7 +116,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                 size="md"
               />
 
-              <Group position="center">
+              <Group justify="center">
                 <Button
                   type="submit"
                   color="red"
@@ -146,8 +136,8 @@ export function TotpSetup({ close, twoFactorEnabled }) {
 
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Stack spacing="md">
-        <Text size="lg" weight={500}>
+      <Stack gap="md">
+        <Text size="lg" fw={500}>
           Two-Factor Authentication Setup
         </Text>
 
@@ -156,6 +146,11 @@ export function TotpSetup({ close, twoFactorEnabled }) {
             <Skeleton height={190} mt={10} />
             <Skeleton height={250} mt={10} />
           </>
+        ) : loadError ? (
+          <LoadError
+            title="Couldn't start 2FA setup"
+            onRetry={setupQuery.retry}
+          />
         ) : (
           <>
             <Alert
@@ -204,9 +199,9 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                     placeholder="Enter the 6-digit code"
                     value={verificationCode}
                     onChange={(event) => {
-                      let value = event.currentTarget.value;
+                      const value = event.currentTarget.value;
                       setVerificationCode(value);
-                      const error = validateVerificationCode(value);
+                      const error = validateTotp(value);
                       setValidationError(error);
                     }}
                     maxLength={6}
@@ -215,7 +210,7 @@ export function TotpSetup({ close, twoFactorEnabled }) {
                     size="md"
                   />
 
-                  <Group position="apart">
+                  <Group justify="space-between">
                     <Button
                       type="submit"
                       loading={verifying}
