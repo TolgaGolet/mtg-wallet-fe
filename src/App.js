@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import "./App.css";
 import {
   createBrowserRouter,
@@ -11,32 +12,42 @@ import { AuthProvider } from "./context/AuthContext";
 // layouts
 import RootLayout from "./layouts/RootLayout";
 
-// pages
+// pages: Home, Login and NotFound are the landing pages, so they're in the main bundle;
+// the others are loaded on first visit (each is its own chunk)
 import NotFound from "./pages/NotFound";
 import Home from "./pages/Home/Home";
 import Login from "./pages/Login";
-import SignUp from "./pages/SignUp";
-import Accounts from "./pages/Accounts/Accounts";
-import CreateOrEditAccount from "./pages/Accounts/CreateOrEditAccount";
-import HelpContact from "./pages/HelpContact";
-import AccountDetail from "./pages/Accounts/AccountDetail";
-import Categories from "./pages/Categories/Categories";
-import CreateOrEditCategory from "./pages/Categories/CreateOrEditCategory";
-import Payees from "./pages/Payees/Payees";
-import CreateOrEditPayee from "./pages/Payees/CreateOrEditPayee";
-import Transactions from "./pages/Transactions/Transactions";
+import RouteError from "./pages/RouteError";
 import ScrollToTop from "./utils/ScrollToTop";
-import VerifyEmail from "./pages/VerifyEmail";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Settings from "./pages/Settings/Settings";
-import AccountRecovery from "./pages/AccountRecovery";
-import RecoverAccount from "./pages/RecoverAccount";
+
+const SignUp = lazy(() => import("./pages/SignUp"));
+const Accounts = lazy(() => import("./pages/Accounts/Accounts"));
+const CreateOrEditAccount = lazy(
+  () => import("./pages/Accounts/CreateOrEditAccount")
+);
+const HelpContact = lazy(() => import("./pages/HelpContact"));
+const AccountDetail = lazy(() => import("./pages/Accounts/AccountDetail"));
+const Categories = lazy(() => import("./pages/Categories/Categories"));
+const CreateOrEditCategory = lazy(
+  () => import("./pages/Categories/CreateOrEditCategory")
+);
+const Payees = lazy(() => import("./pages/Payees/Payees"));
+const CreateOrEditPayee = lazy(
+  () => import("./pages/Payees/CreateOrEditPayee")
+);
+const Transactions = lazy(() => import("./pages/Transactions/Transactions"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const Settings = lazy(() => import("./pages/Settings/Settings"));
+const AccountRecovery = lazy(() => import("./pages/AccountRecovery"));
+const RecoverAccount = lazy(() => import("./pages/RecoverAccount"));
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route
       path="/"
+      errorElement={<RouteError />}
       element={
         <AuthProvider>
           <ScrollToTop />

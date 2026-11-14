@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useDisclosure } from "@mantine/hooks";
 import {
   AppShell,
@@ -15,17 +15,52 @@ import classes from "./RootLayout.module.css";
 import { IconSun, IconMoon, IconLogout } from "@tabler/icons-react";
 import cx from "clsx";
 import AuthContext from "../context/AuthContext";
-import React, { useContext } from "react";
+import React, { Suspense, useContext } from "react";
+import ListSkeleton from "../components/ListSkeleton";
+
+// One list for the desktop and mobile menus. `private` items need a logged-in user.
+const NAV_ITEMS = [
+  { label: "Home", to: "/", end: true },
+  { label: "Accounts", to: "/accounts", private: true },
+  { label: "Payees", to: "/payees", private: true },
+  { label: "Categories", to: "/categories", private: true },
+  { label: "Settings", to: "/settings", private: true },
+  { label: "Help & Contact", to: "/helpContact" },
+];
 
 export default function RootLayout() {
-  const navigate = useNavigate();
-  let { logoutUser, user } = useContext(AuthContext);
-  const [opened, { toggle }] = useDisclosure();
+  const { logoutUser, user } = useContext(AuthContext);
+  const [opened, { toggle, close }] = useDisclosure();
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
   const mobileButtonMargin = "lg";
+  const navItems = NAV_ITEMS.filter((item) => !item.private || user);
+  const toggleColorScheme = () =>
+    setColorScheme(computedColorScheme === "light" ? "dark" : "light");
+
+  // NavLink sets aria-current="page" on the active item, which the CSS also uses for styling
+  const renderNavItems = (itemProps = {}) =>
+    navItems.map((item) => (
+      <UnstyledButton
+        key={item.to}
+        component={NavLink}
+        to={item.to}
+        end={item.end}
+        className={classes.control}
+        {...itemProps}
+      >
+        {item.label}
+      </UnstyledButton>
+    ));
+
+  const colorSchemeIcon =
+    computedColorScheme === "light" ? (
+      <IconMoon className={cx(classes.icon, classes.dark)} stroke={1.5} />
+    ) : (
+      <IconSun className={cx(classes.icon, classes.light)} stroke={1.5} />
+    );
 
   return (
     <div className="root-layout">
@@ -45,92 +80,30 @@ export default function RootLayout() {
               onClick={toggle}
               hiddenFrom="sm"
               size="sm"
+              aria-label="Toggle navigation"
+              aria-expanded={opened}
             />
             <Group justify="space-between" style={{ flex: 1 }}>
-              <a
-                href="/"
-                onClick={(e) => { e.preventDefault(); navigate("/", { replace: false }); }}
-                className={classes.titleLink}
-              >
-                <Title
-                  order={1}
-                  className={classes.title}
-                >
+              <Link to="/" className={classes.titleLink}>
+                <Title order={1} className={classes.title}>
                   MTG Wallet
                 </Title>
-              </a>
+              </Link>
               <Group ml="xl" gap={20} visibleFrom="sm">
-                <UnstyledButton
-                  onClick={() => navigate("/", { replace: false })}
-                  className={classes.control}
-                >
-                  Home
-                </UnstyledButton>
-                {user ? (
-                  <UnstyledButton
-                    onClick={() => navigate("/accounts", { replace: false })}
-                    className={classes.control}
-                  >
-                    Accounts
-                  </UnstyledButton>
-                ) : null}
-                {user ? (
-                  <UnstyledButton
-                    onClick={() => navigate("/payees", { replace: false })}
-                    className={classes.control}
-                  >
-                    Payees
-                  </UnstyledButton>
-                ) : null}
-                {user ? (
-                  <UnstyledButton
-                    onClick={() => navigate("/categories", { replace: false })}
-                    className={classes.control}
-                  >
-                    Categories
-                  </UnstyledButton>
-                ) : null}
-                {user ? (
-                  <UnstyledButton
-                    onClick={() => navigate("/settings", { replace: false })}
-                    className={classes.control}
-                  >
-                    Settings
-                  </UnstyledButton>
-                ) : null}
-                <UnstyledButton
-                  onClick={() => navigate("/helpContact", { replace: false })}
-                  className={classes.control}
-                >
-                  Help & Contact
-                </UnstyledButton>
+                <Group component="nav" aria-label="Main" gap={20}>
+                  {renderNavItems()}
+                </Group>
                 <ActionIcon
-                  onClick={() =>
-                    setColorScheme(
-                      computedColorScheme === "light" ? "dark" : "light"
-                    )
-                  }
+                  onClick={toggleColorScheme}
                   variant="default"
                   size="xl"
                   aria-label="Toggle color scheme"
                 >
-                  {computedColorScheme === "light" ? (
-                    <IconMoon
-                      className={cx(classes.icon, classes.dark)}
-                      stroke={1.5}
-                    />
-                  ) : (
-                    <IconSun
-                      className={cx(classes.icon, classes.light)}
-                      stroke={1.5}
-                    />
-                  )}
+                  {colorSchemeIcon}
                 </ActionIcon>
                 {user ? (
                   <ActionIcon
-                    onClick={() => {
-                      logoutUser();
-                    }}
+                    onClick={() => logoutUser()}
                     variant="default"
                     size="xl"
                     aria-label="Logout"
@@ -147,99 +120,18 @@ export default function RootLayout() {
         </AppShell.Header>
 
         <AppShell.Navbar py="md" px={4}>
-          <UnstyledButton
-            onClick={() => {
-              navigate("/", { replace: false });
-              toggle();
-            }}
-            className={classes.control}
-            mb={mobileButtonMargin}
-            ml={mobileButtonMargin}
-          >
-            Home
-          </UnstyledButton>
-          {user ? (
-            <UnstyledButton
-              onClick={() => {
-                navigate("/accounts", { replace: false });
-                toggle();
-              }}
-              className={classes.control}
-              mb={mobileButtonMargin}
-              ml={mobileButtonMargin}
-            >
-              Accounts
-            </UnstyledButton>
-          ) : null}
-          {user ? (
-            <UnstyledButton
-              onClick={() => {
-                navigate("/payees", { replace: false });
-                toggle();
-              }}
-              className={classes.control}
-              mb={mobileButtonMargin}
-              ml={mobileButtonMargin}
-            >
-              Payees
-            </UnstyledButton>
-          ) : null}
-          {user ? (
-            <UnstyledButton
-              onClick={() => {
-                navigate("/categories", { replace: false });
-                toggle();
-              }}
-              className={classes.control}
-              mb={mobileButtonMargin}
-              ml={mobileButtonMargin}
-            >
-              Categories
-            </UnstyledButton>
-          ) : null}
-          {user ? (
-            <UnstyledButton
-              onClick={() => {
-                navigate("/settings", { replace: false });
-                toggle();
-              }}
-              className={classes.control}
-              mb={mobileButtonMargin}
-              ml={mobileButtonMargin}
-            >
-              Settings
-            </UnstyledButton>
-          ) : null}
-          <UnstyledButton
-            onClick={() => {
-              navigate("/helpContact", { replace: false });
-              toggle();
-            }}
-            className={classes.control}
-            mb={mobileButtonMargin}
-            ml={mobileButtonMargin}
-          >
-            Help & Contact
-          </UnstyledButton>
+          <nav aria-label="Main">
+            {renderNavItems({
+              onClick: close,
+              mb: mobileButtonMargin,
+              ml: mobileButtonMargin,
+            })}
+          </nav>
           <Button
-            onClick={() =>
-              setColorScheme(computedColorScheme === "light" ? "dark" : "light")
-            }
+            onClick={toggleColorScheme}
             justify="center"
             fullWidth
-            leftSection={
-              computedColorScheme === "light" ? (
-                <IconMoon
-                  className={cx(classes.icon, classes.dark)}
-                  stroke={1.5}
-                />
-              ) : (
-                <IconSun
-                  className={cx(classes.icon, classes.light)}
-                  stroke={1.5}
-                />
-              )
-            }
+            leftSection={colorSchemeIcon}
             variant="default"
             mt="xs"
           >
@@ -249,7 +141,7 @@ export default function RootLayout() {
             <Button
               onClick={() => {
                 logoutUser();
-                toggle();
+                close();
               }}
               justify="center"
               fullWidth
@@ -268,7 +160,10 @@ export default function RootLayout() {
         </AppShell.Navbar>
 
         <AppShell.Main>
-          <Outlet />
+          {/* Most pages are lazy-loaded (App.js); show a skeleton while a page's code downloads */}
+          <Suspense fallback={<ListSkeleton />}>
+            <Outlet />
+          </Suspense>
         </AppShell.Main>
       </AppShell>
     </div>

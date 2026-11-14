@@ -1,0 +1,16 @@
+# Dependabot: opens pull requests when dependencies have new versions or security fixes.
+# Docs: https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      # Minor and patch bumps arrive as one PR; major versions get their own PR each
+      npm-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

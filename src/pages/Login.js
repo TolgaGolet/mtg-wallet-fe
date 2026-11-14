@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import AuthContext from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   TextInput,
   PasswordInput,
@@ -11,26 +11,29 @@ import {
   Button,
   FocusTrap,
   Alert,
-  Text,
-  Center,
-  rem,
+  Stack,
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconCheck, IconX } from "@tabler/icons-react";
+import {
+  requirePassword,
+  TOTP_REGEX,
+  validateTotp,
+  validateUsername,
+} from "../validation/rules";
+import { IconX } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
-import { showNotification } from "@mantine/notifications";
-import { modals } from "@mantine/modals";
+import showNotification from "../components/showNotification";
+import openSuccessDialog from "../components/openSuccessDialog";
+import { publicApi } from "../api/client";
+
+const NO_ERROR = { isErrorState: false, isEmailVerificationRequired: false };
 
 const Login = () => {
-  let { loginUser, user } = useContext(AuthContext);
+  const { loginUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [errorData, setErrorData] = useState({
-    isErrorState: false,
-    isEmailVerificationRequired: false,
-    message: "",
-  });
+  const [errorData, setErrorData] = useState({ ...NO_ERROR, message: "" });
   const [isTotpRequired, setIsTotpRequired] = useState(false);
   const [showResendButton, { toggle: toggleResendButton }] =
     useDisclosure(false);
@@ -43,37 +46,14 @@ const Login = () => {
     },
 
     validate: {
-      username: (val) =>
-        val?.length > 15 || val?.length < 3 || !/^[a-zA-Z0-9]+$/.test(val)
-          ? "Username must be 3-15 characters and contain only letters and numbers"
-          : null,
-      password: (val) => {
-        if (!val) {
-          return "Password is required";
-        }
-        const length = val.length >= 8 && val.length <= 64;
-        const uppercase = /[A-Z]/.test(val);
-        const lowercase = /[a-z]/.test(val);
-        const number = /\d/.test(val);
-        const special = /[!@#$%^&*(),.?":{}|<>]/.test(val);
-        if (!length || !uppercase || !lowercase || !number || !special) {
-          return "Password must be 8-64 characters long and contain at least one uppercase letter, one lowercase letter, one digit and one special character";
-        }
-        return null;
-      },
-      verificationCode: (val) => {
-        if (!isTotpRequired) return null;
-        if (!val) {
-          return "Verification code is required";
-        }
-        if (!/^\d{6}$/.test(val)) {
-          return "Verification code must be a 6-digit number";
-        }
-        return null;
-      },
+      username: validateUsername,
+      // Only required here: the server decides whether the password is right
+      password: requirePassword,
+      verificationCode: (val) => (isTotpRequired ? validateTotp(val) : null),
     },
   });
 
+  // Logging in sets `user`, which brings the user to Home
   useEffect(() => {
     if (user) {
       navigate("/", { replace: true });
@@ -83,80 +63,35 @@ const Login = () => {
   const handleResendClick = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_RESEND_VERIFY_EMAIL_URL}/${form.values.username}`,
-        {
-          method: "POST",
-        }
+      await publicApi.post(
+        `${process.env.REACT_APP_RESEND_VERIFY_EMAIL_URL}/${form.values.username}`
       );
-      if (response.ok) {
-        modals.open({
-          title: "Verification code resent",
-          centered: true,
-          children: (
-            <>
-              <Center>
-                <IconCheck
-                  style={{
-                    width: rem(125),
-                    height: rem(125),
-                    color: "teal",
-                  }}
-                />
-              </Center>
-              <Text>
-                We have sent an email verification link to your email inbox.
-                Please click the link to verify your email address. Then you
-                will be able to login.
-              </Text>
-              <Group position="apart" justify="flex-end">
-                <Button
-                  onClick={() => {
-                    modals.closeAll();
-                    navigate("/", { replace: true });
-                  }}
-                  mt="md"
-                >
-                  Okay
-                </Button>
-              </Group>
-            </>
-          ),
-          withCloseButton: false,
-          closeOnClickOutside: false,
-          closeOnEscape: false,
-          size: "lg",
-        });
-      } else {
-        const message = await response.text();
-        showNotification(message, "error");
-      }
-    } catch (error) {
-      showNotification("Something went wrong! " + error.toString(), "error");
+      openSuccessDialog({
+        title: "Verification link resent",
+        message:
+          "We have sent an email verification link to your email inbox. Please click the link to verify your email address. Then you will be able to login.",
+        onOk: () => navigate("/", { replace: true }),
+      });
+    } catch {
+      // The API client has shown the error
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renderError = () => {
-    if (!errorData.isEmailVerificationRequired) {
-      return (
-        <Alert variant="light" color="red" title="Error" icon={<IconX />}>
-          {errorData.message}
-        </Alert>
-      );
-    } else {
-      return (
-        <Alert variant="light" color="red" title="Error" icon={<IconX />}>
-          {errorData.message}
-          <Text
+  const renderError = () => (
+    <Alert variant="light" color="red" title="Error" icon={<IconX />} mb="md">
+      {errorData.message}
+      {errorData.isEmailVerificationRequired && (
+        <Stack gap="sm" mt="md" align="flex-start">
+          <Anchor
+            component="button"
+            type="button"
             size="sm"
-            style={{ cursor: "pointer" }}
-            c={"blue"}
             onClick={toggleResendButton}
-            mt="md"
-            mb="md"
           >
             Didn't receive a verification link?
-          </Text>
+          </Anchor>
           {showResendButton && (
             <Button
               variant="light"
@@ -166,35 +101,36 @@ const Login = () => {
               Resend
             </Button>
           )}
-        </Alert>
-      );
-    }
-  };
+        </Stack>
+      )}
+    </Alert>
+  );
 
-  const formOnSubmit = (e) => {
+  const formOnSubmit = async (values) => {
     setIsLoading(true);
-    loginUser(e, setIsLoading, setErrorData, setIsTotpRequired);
-  };
-
-  useEffect(() => {
-    if (isTotpRequired && form.values.verificationCode.length === 6) {
-      form.onSubmit((e) => {
-        formOnSubmit(e);
-      })();
+    const result = await loginUser(values);
+    setIsLoading(false);
+    if (result.status === "ok") {
+      showNotification("You have been successfully signed in", "success");
+    } else if (result.status === "totp") {
+      setErrorData({ ...NO_ERROR, message: "" });
+      setIsTotpRequired(true);
+    } else if (result.message) {
+      // Without a message it was a network error, which the client has already shown
+      setErrorData({
+        isErrorState: true,
+        isEmailVerificationRequired: result.isEmailVerificationRequired,
+        message: result.message,
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.values.verificationCode, isTotpRequired]);
+  };
 
   return (
     <Container size={420} my={40}>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
         {errorData.isErrorState ? renderError() : null}
         <FocusTrap active={true}>
-          <form
-            onSubmit={form.onSubmit((e) => {
-              formOnSubmit(e);
-            })}
-          >
+          <form onSubmit={form.onSubmit(formOnSubmit)}>
             {!isTotpRequired ? (
               <>
                 <TextInput
@@ -222,9 +158,22 @@ const Login = () => {
                   label="Verification code"
                   placeholder="Verification code"
                   {...form.getInputProps("verificationCode")}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value;
+                    form.setFieldValue("verificationCode", value);
+                    // Sign in as soon as the 6-digit code is complete
+                    if (TOTP_REGEX.test(value) && !isLoading) {
+                      formOnSubmit({
+                        ...form.getValues(),
+                        verificationCode: value,
+                      });
+                    }
+                  }}
                   required
                   size="md"
                   maxLength={6}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   autoFocus
                 />
               </>
@@ -244,35 +193,19 @@ const Login = () => {
             {!isTotpRequired ? (
               <>
                 <Group justify="space-between" mt="lg">
-                  <Anchor
-                    onClick={() => navigate("/register", { replace: true })}
-                    component="button"
-                    size="sm"
-                  >
+                  <Anchor component={Link} to="/register" replace size="sm">
                     Don't have an account?
                   </Anchor>
                 </Group>
                 <Group justify="space-between" mt="xs">
-                  <Anchor
-                    onClick={() =>
-                      navigate("/forgot-password", { replace: false })
-                    }
-                    component="button"
-                    size="sm"
-                  >
+                  <Anchor component={Link} to="/forgot-password" size="sm">
                     Forgot password?
                   </Anchor>
                 </Group>
               </>
             ) : (
               <Group justify="space-between" mt="lg">
-                <Anchor
-                  onClick={() =>
-                    navigate("/account-recovery", { replace: false })
-                  }
-                  component="button"
-                  size="sm"
-                >
+                <Anchor component={Link} to="/account-recovery" size="sm">
                   Don't have access to the authenticator?
                 </Anchor>
               </Group>

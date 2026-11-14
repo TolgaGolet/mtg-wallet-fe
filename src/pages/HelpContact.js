@@ -35,7 +35,7 @@ export default function HelpContact() {
       </Accordion>
       <Grid>
         <Grid.Col span={12} sm={6} md={4}>
-          <Text align="center" size="lg" weight={700}>
+          <Text ta="center" size="lg" fw={700}>
             Contact Us
           </Text>
           <div
