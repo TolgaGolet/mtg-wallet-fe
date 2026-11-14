@@ -1,16 +1,10 @@
 import { forwardRef } from "react";
 import { NumberInput } from "@mantine/core";
 
-const AmountInput = forwardRef(function AmountInput({
-  label,
-  placeholder,
-  required,
-  form,
-  fieldName,
-  min,
-  max,
-  ...props
-}, ref) {
+const AmountInput = forwardRef(function AmountInput(
+  { label, placeholder, required, form, fieldName, min, max, ...props },
+  ref
+) {
   const inputProps = form.getInputProps(fieldName);
   // Mantine's NumberInput warns when `value` is null. Normalize null/undefined
   // to an empty string so the input behaves as an uncontrolled-empty field.

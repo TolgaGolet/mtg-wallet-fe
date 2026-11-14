@@ -7,19 +7,16 @@ import {
   Container,
   Button,
   FocusTrap,
-  Center,
-  rem,
   Title,
   Text,
-  Group,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconCheck } from "@tabler/icons-react";
-import { modals } from "@mantine/modals";
-import showNotification from "../components/showNotification";
+import openSuccessDialog from "../components/openSuccessDialog";
+import { publicApi } from "../api/client";
+import { validateEmail } from "../validation/rules";
 
 const ForgotPassword = () => {
-  let { user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm({
@@ -29,12 +26,7 @@ const ForgotPassword = () => {
     },
 
     validate: {
-      email: (val) =>
-        val?.length > 100 ||
-        val?.length < 3 ||
-        !/^[a-zA-Z0-9_!#$%&'*+/=?`{|}~^.-]+@[a-zA-Z0-9.-]+$/.test(val)
-          ? "Email must be 3-100 characters and should be valid"
-          : null,
+      email: validateEmail,
     },
   });
 
@@ -44,65 +36,20 @@ const ForgotPassword = () => {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (values) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}auth/password-reset/request`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(e),
-        }
-      );
-      if (response?.status === 200) {
-        setIsLoading(false);
-        modals.open({
-          title: "Link sent",
-          centered: true,
-          children: (
-            <>
-              <Center>
-                <IconCheck
-                  style={{
-                    width: rem(125),
-                    height: rem(125),
-                    color: "teal",
-                  }}
-                />
-              </Center>
-              <Text>
-                We have sent a link for resetting your password to your email
-                inbox. Please click the link to reset your password.
-              </Text>
-              <Group position="apart" justify="flex-end">
-                <Button
-                  onClick={() => {
-                    modals.closeAll();
-                    navigate("/", { replace: true });
-                  }}
-                  mt="md"
-                >
-                  Okay
-                </Button>
-              </Group>
-            </>
-          ),
-          withCloseButton: false,
-          closeOnClickOutside: false,
-          closeOnEscape: false,
-          size: "lg",
-        });
-      } else {
-        const message = await response.text();
-        setIsLoading(false);
-        showNotification(message, "error");
-      }
-    } catch (error) {
+      await publicApi.post("auth/password-reset/request", values);
+      openSuccessDialog({
+        title: "Link sent",
+        message:
+          "We have sent a link for resetting your password to your email inbox. Please click the link to reset your password.",
+        onOk: () => navigate("/", { replace: true }),
+      });
+    } catch {
+      // The API client has shown the server's message or a network error
+    } finally {
       setIsLoading(false);
-      showNotification("Something went wrong! " + error.toString(), "error");
     }
   };
 

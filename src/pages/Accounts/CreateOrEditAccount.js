@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -17,16 +17,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import AmountInput from "../../components/AmountInput";
 import showNotification from "../../components/showNotification";
 import PageTitle from "../../components/PageTitle";
+import LoadError from "../../components/LoadError";
+import useApiQuery from "../../utils/useApiQuery";
+import { validateEntityName } from "../../validation/rules";
 
 export default function CreateOrEditAccount() {
   const { accountId } = useParams();
   const callApi = useAxios();
   const navigate = useNavigate();
-  let [isLoading, setIsLoading] = useState(true);
-  let [accountTypes, setAccountTypes] = useState([]);
-  let [currencies, setCurrencies] = useState([]);
-  let isEdit = accountId !== "create";
-  let [accountDetails, setAccountDetails] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const isEdit = accountId !== "create";
 
   const form = useForm({
     validateInputOnBlur: true,
@@ -38,81 +38,73 @@ export default function CreateOrEditAccount() {
     },
 
     validate: {
-      name: (val) =>
-        val?.length > 50 ||
-        val?.length < 3 ||
-        !/^[a-zA-Z0-9\sçğıöşüÇĞİÖŞÜ]+$/.test(val)
-          ? "Name must be 3-50 characters and contain only letters, numbers and spaces"
-          : null,
+      name: validateEntityName,
     },
   });
 
-  useEffect(() => {
-    callApi.get("account/create/enums").then((response) => {
-      setAccountTypes(response.data?.accountTypes);
-      setCurrencies(response.data?.currencies);
-      if (isEdit) {
-        callApi.post("account/search", { id: accountId }).then((response) => {
-          setAccountDetails(response.data?.content[0]);
-          setIsLoading(false);
-        });
-      }
-      !isEdit && setIsLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let formValues = {
-      ...accountDetails,
-      typeValue: accountDetails?.type?.value,
-      currencyValue: accountDetails?.currency?.value,
-    };
-    form.setValues(formValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountDetails]);
+  // Enums and (when editing) the account itself load in parallel; onSuccess fills the form
+  const formQuery = useApiQuery(
+    async (signal) => {
+      const [enums, details] = await Promise.all([
+        callApi.get("account/create/enums", { signal }).then((r) => r.data),
+        isEdit
+          ? callApi
+              .post("account/search", { id: accountId }, { signal })
+              .then((r) => r.data?.content?.[0] ?? {})
+          : null,
+      ]);
+      return { enums, details };
+    },
+    [accountId],
+    {
+      onSuccess: ({ details }) => {
+        if (details) {
+          form.setValues({
+            ...details,
+            typeValue: details.type?.value,
+            currencyValue: details.currency?.value,
+          });
+        }
+      },
+    }
+  );
+  const isLoading = formQuery.loading || isSaving;
+  const loadError = Boolean(formQuery.error);
+  const accountTypes = formQuery.data?.enums?.accountTypes ?? [];
+  const currencies = formQuery.data?.enums?.currencies ?? [];
 
   const createAccount = (request) => {
     callApi
       .post("account/create", request)
-      .then((response) => {
+      .then(() => {
         navigate("/accounts", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Account created successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const editAccount = (request) => {
     callApi
       .put(`account/update/${accountId}`, request)
-      .then((response) => {
+      .then(() => {
         navigate(`/accounts/${accountId}`, { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Account updated successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const deleteAccount = () => {
-    setIsLoading(true);
+    setIsSaving(true);
     callApi
       .delete(`account/delete/${accountId}`)
-      .then((response) => {
+      .then(() => {
         navigate("/accounts", { replace: true });
-        setIsLoading(false);
+        setIsSaving(false);
         showNotification("Account deleted successfully", "success");
       })
-      .catch((error) => {
-        console.log(error);
-        setIsLoading(false);
-      });
+      .catch(() => setIsSaving(false));
   };
 
   const openDeleteConfirmModal = () => {
@@ -140,13 +132,23 @@ export default function CreateOrEditAccount() {
         isBackButtonVisible={true}
         value={isEdit ? "Edit Account" : "Create a New Account"}
       />
+      {loadError && (
+        <LoadError
+          mb="md"
+          title="Couldn't load the form"
+          onRetry={formQuery.retry}
+        />
+      )}
       <Box pos="relative">
         <LoadingOverlay visible={isLoading} />
-        <Fieldset legend="Account information" disabled={isLoading}>
+        <Fieldset
+          legend="Account information"
+          disabled={isLoading || loadError}
+        >
           <FocusTrap active={false}>
             <form
               onSubmit={form.onSubmit((e) => {
-                setIsLoading(true);
+                setIsSaving(true);
                 isEdit ? editAccount(e) : createAccount(e);
               })}
             >

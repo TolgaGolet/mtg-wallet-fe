@@ -2,6 +2,11 @@ import { Button, Center, rem, Text } from "@mantine/core";
 import { IconCheck } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  getErrorMessage,
+  NETWORK_ERROR_MESSAGE,
+  publicApi,
+} from "../api/client";
 
 export default function VerifyEmail() {
   const { token } = useParams();
@@ -11,33 +16,30 @@ export default function VerifyEmail() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    const verifyToken = async (token) => {
+      try {
+        // The page shows the error itself, so no toast
+        await publicApi.post(
+          `${process.env.REACT_APP_VERIFY_EMAIL_URL}/${token}`,
+          {},
+          { silentErrors: true }
+        );
+        setIsVerified(true);
+      } catch (error) {
+        setErrorMessage(
+          error.response ? getErrorMessage(error) : NETWORK_ERROR_MESSAGE
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (token) {
       verifyToken(token);
     } else {
       navigate("/", { replace: false });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  const verifyToken = async (token) => {
-    try {
-      let response = await fetch(
-        `${process.env.REACT_APP_API_BASE_URL}${process.env.REACT_APP_VERIFY_EMAIL_URL}/${token}`,
-        {
-          method: "POST",
-        }
-      );
-      if (response?.status === 200) {
-        setIsVerified(true);
-      } else {
-        const message = await response.text();
-        setErrorMessage(message);
-      }
-    } catch (error) {
-      setErrorMessage("Something went wrong! " + error.toString());
-    }
-    setIsLoading(false);
-  };
+  }, [token, navigate]);
 
   const renderSuccess = () => {
     return (

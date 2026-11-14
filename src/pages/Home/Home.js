@@ -1,5 +1,7 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
+  ActionIcon,
+  Anchor,
   Card,
   Group,
   Paper,
@@ -15,14 +17,19 @@ import {
   Stack,
   Divider,
 } from "@mantine/core";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useLocalStorage } from "@mantine/hooks";
 import AuthContext from "../../context/AuthContext";
 import useAxios from "../../utils/useAxios";
+import useApiQuery from "../../utils/useApiQuery";
 import { Currency } from "../../enum/Currency";
 import { Interval } from "../../enum/Interval";
 import AmountFormatter from "../../components/AmountFormatter";
-import TransactionModal from "./TransactionModal";
+import TransactionModal from "../../components/TransactionModal/TransactionModal";
 import TransactionRow from "../../components/TransactionRow";
+import LoadError from "../../components/LoadError";
+import ListSkeleton from "../../components/ListSkeleton";
+import { getDateGroup } from "../../utils/dates";
 import {
   IconArrowDownRight,
   IconArrowUpRight,
@@ -37,178 +44,160 @@ import {
 } from "@tabler/icons-react";
 import classes from "./Home.module.css";
 
+const INTERVAL_OPTIONS = [
+  { value: Interval.DAILY, label: "Daily" },
+  { value: Interval.WEEKLY, label: "Weekly" },
+  { value: Interval.MONTHLY, label: "Monthly" },
+  { value: Interval.YEARLY, label: "Yearly" },
+];
+
+const GROUP_ORDER = ["Today", "Yesterday", "Last Week", "Last Month", "Older"];
+
 export default function Home() {
-  let { user } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const callApi = useAxios();
   const theme = useMantineTheme();
-  let [isLoading, setIsLoading] = useState(true);
-  let [isRecentTransactionsLoading, setIsRecentTransactionsLoading] =
-    useState(true);
-  let [recentTransactions, setRecentTransactions] = useState(null);
-  let [isVisible, setIsVisible] = useState(true);
-  let [currencies, setCurrencies] = useState([]);
-  let [selectedCurrency, setSelectedCurrency] = useState("TRY");
-  let [currencySymbol, setCurrencySymbol] = useState(Currency.TRY.symbol);
-  let [selectedInterval, setSelectedInterval] = useState(Interval.DAILY);
-  let [netValueData, setNetValueData] = useState({
-    netValue: 0.0,
-    profitLoss: 0.0,
-    profitLossPercentage: 0.0,
+  // Remembered per browser, so hidden balances stay hidden on the next visit
+  const [hideBalances, setHideBalances] = useLocalStorage({
+    key: "mtgWallet.hideBalances",
+    defaultValue: false,
+    getInitialValueInEffect: false,
   });
-  let [isTransactionModelOpened, setIsTransactionModelOpened] = useState(false);
-  let [displayedTransactionId, setDisplayedTransactionId] = useState(null);
+  const isVisible = !hideBalances;
+  const [selectedCurrency, setSelectedCurrency] = useState("TRY");
+  const [selectedInterval, setSelectedInterval] = useState(Interval.DAILY);
+  const [isTransactionModalOpened, setIsTransactionModalOpened] =
+    useState(false);
+  const [displayedTransactionId, setDisplayedTransactionId] = useState(null);
+  const currencySymbol = Currency[selectedCurrency]?.symbol;
+
+  // Independent loads, so one failing doesn't block the others
+  const currenciesQuery = useApiQuery((signal) =>
+    callApi
+      .get("home/enums", { signal })
+      .then((response) => response.data?.currencies ?? [])
+  );
+  const recentTransactionsQuery = useApiQuery((signal) =>
+    callApi
+      .post("transaction/search", {}, { params: { pageNo: 0 }, signal })
+      .then((response) => response.data?.content ?? [])
+  );
+  // Switching currency or interval aborts the previous request, so a slow response for an old
+  // selection can't overwrite the current one
+  const netValueQuery = useApiQuery(
+    (signal) =>
+      callApi
+        .get("home/net-value", {
+          params: {
+            currencyValue: selectedCurrency,
+            intervalValue: selectedInterval,
+          },
+          signal,
+        })
+        .then((response) => response.data),
+    [selectedCurrency, selectedInterval]
+  );
+
+  const currencies = currenciesQuery.data ?? [];
+  const recentTransactions = recentTransactionsQuery.data ?? null;
+  const netValueData = netValueQuery.data;
+  const isNetValueLoading = netValueQuery.loading;
+
+  const retryNetValueCard = () => {
+    if (currenciesQuery.error) {
+      currenciesQuery.retry();
+    }
+    netValueQuery.retry();
+  };
+
+  // After a save in the modal, refresh only what Home shows
+  const onTransactionSaved = () => {
+    recentTransactionsQuery.retry();
+    netValueQuery.retry();
+  };
 
   const shortcutItems = [
     {
       title: "Accounts",
       icon: IconCreditCard,
       color: "violet",
-      style: {},
-      onClick: () => {
-        navigate(`/accounts/`, { replace: false });
-      },
+      to: "/accounts",
     },
     {
       title: "Payees",
       icon: IconList,
       color: "indigo",
-      style: {},
-      onClick: () => {
-        navigate(`/payees/`, { replace: false });
-      },
+      to: "/payees",
     },
     {
       title: "Create Transaction",
       icon: IconPlus,
       color: "green",
       style: { border: `1px solid ${theme.colors.green[6]}` },
+      // The modal reuses Home's recent transactions, so wait until they are loaded
+      disabled: recentTransactionsQuery.loading,
       onClick: () => {
         setDisplayedTransactionId(null);
-        setIsTransactionModelOpened(true);
+        setIsTransactionModalOpened(true);
       },
     },
     {
       title: "Categories",
       icon: IconListDetails,
       color: "blue",
-      style: {},
-      onClick: () => {
-        navigate(`/categories/`, { replace: false });
-      },
+      to: "/categories",
     },
     {
       title: "Statistics (Soon)",
       icon: IconReport,
       color: "cyan",
       style: { color: theme.colors.gray[7] },
-      onClick: () => {},
+      disabled: true,
     },
     {
       title: "Transactions",
       icon: IconRepeat,
       color: "teal",
-      style: {},
-      onClick: () => {
-        navigate(`/transactions/`, { replace: false });
-      },
+      to: "/transactions",
     },
-    // { title: "Receipts", icon: IconReceipt, color: "green", style: {}, onClick: () => {} },
-    // { title: "Taxes", icon: IconReceiptTax, color: "pink", style: {}, onClick: () => {} },
-    // { title: "Payments", icon: IconCoin, color: "red", style: {}, onClick: () => {} },
-    // { title: "Cashback", icon: IconCashBanknote, color: "orange", style: {}, onClick: () => {} },
   ];
-
-  const getNetValueData = () => {
-    callApi
-      .get("home/net-value", {
-        params: {
-          currencyValue: selectedCurrency,
-          intervalValue: selectedInterval,
-        },
-      })
-      .then((response) => {
-        setNetValueData(response.data);
-        setIsLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    callApi.get("home/enums").then((response) => {
-      setCurrencies(response.data?.currencies);
-      getNetValueData();
-      callApi
-        .post("transaction/search", {}, { params: { pageNo: 0 } })
-        .then((response) => {
-          setRecentTransactions(response.data?.content);
-          setIsRecentTransactionsLoading(false);
-        });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setIsLoading(true);
-    setCurrencySymbol(Currency[selectedCurrency]?.symbol);
-    getNetValueData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCurrency]);
-
-  useEffect(() => {
-    setIsLoading(true);
-    getNetValueData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedInterval]);
 
   const renderDiffIcon = () => {
     return netValueData?.profitLoss > 0 ? (
-      <IconArrowUpRight size="1rem" stroke={1.5} />
+      <IconArrowUpRight size="1rem" stroke={1.5} aria-hidden />
     ) : netValueData?.profitLoss === 0 ? null : (
-      <IconArrowDownRight size="1rem" stroke={1.5} />
+      <IconArrowDownRight size="1rem" stroke={1.5} aria-hidden />
     );
   };
 
   const renderIntervals = () => {
     return (
-      <Group c="dimmed" mt="md" ml={rem(2)} gap={rem(30)} p={rem(5)}>
-        <UnstyledButton
-          className={`${classes.intervalButton} ${
-            selectedInterval === Interval.DAILY ? classes.selectedInterval : ""
-          }`}
-          onClick={() => setSelectedInterval(Interval.DAILY)}
-          disabled={isLoading}
-        >
-          D
-        </UnstyledButton>
-        <UnstyledButton
-          className={`${classes.intervalButton} ${
-            selectedInterval === Interval.WEEKLY ? classes.selectedInterval : ""
-          }`}
-          onClick={() => setSelectedInterval(Interval.WEEKLY)}
-          disabled={isLoading}
-        >
-          W
-        </UnstyledButton>
-        <UnstyledButton
-          className={`${classes.intervalButton} ${
-            selectedInterval === Interval.MONTHLY
-              ? classes.selectedInterval
-              : ""
-          }`}
-          onClick={() => setSelectedInterval(Interval.MONTHLY)}
-          disabled={isLoading}
-        >
-          M
-        </UnstyledButton>
-        <UnstyledButton
-          className={`${classes.intervalButton} ${
-            selectedInterval === Interval.YEARLY ? classes.selectedInterval : ""
-          }`}
-          onClick={() => setSelectedInterval(Interval.YEARLY)}
-          disabled={isLoading}
-        >
-          Y
-        </UnstyledButton>
+      <Group
+        c="dimmed"
+        mt="md"
+        ml={rem(2)}
+        gap={rem(30)}
+        p={rem(5)}
+        role="group"
+        aria-label="Interval"
+      >
+        {INTERVAL_OPTIONS.map((option) => {
+          const isSelected = selectedInterval === option.value;
+          return (
+            <UnstyledButton
+              key={option.value}
+              className={`${classes.intervalButton} ${
+                isSelected ? classes.selectedInterval : ""
+              }`}
+              onClick={() => setSelectedInterval(option.value)}
+              aria-pressed={isSelected}
+              aria-label={option.label}
+              title={option.label}
+            >
+              {option.value}
+            </UnstyledButton>
+          );
+        })}
       </Group>
     );
   };
@@ -218,6 +207,15 @@ export default function Home() {
   };
 
   const renderNetValuePaper = () => {
+    if (netValueQuery.error || currenciesQuery.error) {
+      return (
+        <LoadError
+          mt="md"
+          title="Couldn't load your net value"
+          onRetry={retryNetValueCard}
+        />
+      );
+    }
     return (
       <Paper
         withBorder
@@ -232,28 +230,29 @@ export default function Home() {
             <Text size="sm" c="dimmed" className={classes.title}>
               Net Value
             </Text>
-            {isVisible ? (
-              <IconEye
-                size="1.2rem"
-                stroke={1.5}
-                onClick={() => setIsVisible(false)}
-              />
-            ) : (
-              <IconEyeOff
-                size="1.2rem"
-                stroke={1.5}
-                onClick={() => setIsVisible(true)}
-              />
-            )}
+            <ActionIcon
+              variant="subtle"
+              color="gray"
+              onClick={() => setHideBalances(isVisible)}
+              aria-label={isVisible ? "Hide balances" : "Show balances"}
+              aria-pressed={!isVisible}
+            >
+              {isVisible ? (
+                <IconEye size="1.2rem" stroke={1.5} />
+              ) : (
+                <IconEyeOff size="1.2rem" stroke={1.5} />
+              )}
+            </ActionIcon>
           </Group>
           <Select
+            aria-label="Currency"
             data={currencies.map((currency) => ({
               value: currency.value,
               label: currency.value,
             }))}
             allowDeselect={false}
             size="xs"
-            disabled={isLoading}
+            disabled={currenciesQuery.loading}
             value={selectedCurrency}
             onChange={(value) => setSelectedCurrency(value)}
             style={{ width: 90 }}
@@ -261,7 +260,7 @@ export default function Home() {
         </Group>
 
         <Group align="flex-end" gap="xs" mt={25}>
-          {isLoading ? (
+          {isNetValueLoading || !netValueData ? (
             renderNetValueSkeleton()
           ) : (
             <>
@@ -280,8 +279,8 @@ export default function Home() {
                   netValueData?.profitLoss === 0
                     ? "dimmed"
                     : netValueData?.profitLoss > 0
-                    ? "teal"
-                    : "red"
+                      ? "teal"
+                      : "red"
                 }
                 fz={13}
                 fw={500}
@@ -314,19 +313,29 @@ export default function Home() {
   };
 
   const renderShortcutItems = () => {
-    return shortcutItems.map((item) => (
-      <UnstyledButton
-        key={item.title}
-        className={classes.shortcutItem}
-        style={item.style}
-        onClick={item.onClick}
-      >
-        <item.icon color={theme.colors[item.color][6]} size="2rem" />
-        <Text size="xs" mt={7} ta="center">
-          {item.title}
-        </Text>
-      </UnstyledButton>
-    ));
+    return shortcutItems.map((item) => {
+      // Navigation shortcuts are real links; the rest are buttons
+      const linkProps = item.to ? { component: Link, to: item.to } : {};
+      return (
+        <UnstyledButton
+          key={item.title}
+          className={classes.shortcutItem}
+          style={item.disabled ? { ...item.style, opacity: 0.5 } : item.style}
+          onClick={item.onClick}
+          disabled={item.disabled}
+          {...linkProps}
+        >
+          <item.icon
+            color={theme.colors[item.color][6]}
+            size="2rem"
+            aria-hidden
+          />
+          <Text size="xs" mt={7} ta="center">
+            {item.title}
+          </Text>
+        </UnstyledButton>
+      );
+    });
   };
 
   const renderShortcuts = () => {
@@ -340,56 +349,9 @@ export default function Home() {
     );
   };
 
-  const renderSkeletonRecentTransactions = () => {
-    return (
-      <>
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-        <Skeleton height={100} mt={10} />
-      </>
-    );
-  };
-
   const onClickTransactionRow = (id) => {
     setDisplayedTransactionId(id);
-    setIsTransactionModelOpened(true);
-  };
-
-  const getDateGroup = (dateTime) => {
-    if (!dateTime) {
-      return "Older";
-    }
-
-    const now = new Date();
-    const date = new Date(dateTime);
-
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    );
-    const startOfDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-
-    const diffMs = startOfToday - startOfDate;
-    let diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    // Guard against future-dated transactions due to time zone offsets
-    if (diffDays < 0) {
-      diffDays = 0;
-    }
-
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays <= 7) return "Last Week";
-    if (diffDays <= 30) return "Last Month";
-    return "Older";
+    setIsTransactionModalOpened(true);
   };
 
   const renderRecentTransactions = () => {
@@ -413,11 +375,9 @@ export default function Home() {
       {}
     );
 
-    const groupOrder = ["Today", "Yesterday", "Last Week", "Last Month", "Older"];
-
     return (
       <Stack>
-        {groupOrder.map((group) => {
+        {GROUP_ORDER.map((group) => {
           const transactions = groupedTransactions[group];
           if (!transactions || transactions.length === 0) {
             return null;
@@ -437,28 +397,43 @@ export default function Home() {
                 }
                 labelPosition="left"
               />
-                {sortedTransactions.map((transaction) => (
-                  <TransactionRow
-                    key={transaction.id}
-                    payee={transaction.payee?.name}
-                    category={transaction.payee?.category?.name}
-                    parentCategory={
-                      transaction.payee?.category?.parentCategory?.name
-                    }
-                    typeValue={transaction.type?.value}
-                    amount={transaction.amount}
-                    currencyValue={transaction.sourceAccount?.currency?.value}
-                    dateTime={transaction.dateTime}
-                    sourceAccount={transaction.sourceAccount?.name}
-                    targetAccount={transaction.targetAccount?.name}
-                    onClick={() => onClickTransactionRow(transaction.id)}
-                  />
-                ))}
+              {sortedTransactions.map((transaction) => (
+                <TransactionRow
+                  key={transaction.id}
+                  payee={transaction.payee?.name}
+                  category={transaction.payee?.category?.name}
+                  parentCategory={
+                    transaction.payee?.category?.parentCategoryName
+                  }
+                  typeValue={transaction.type?.value}
+                  amount={transaction.amount}
+                  currencyValue={transaction.sourceAccount?.currency?.value}
+                  dateTime={transaction.dateTime}
+                  sourceAccount={transaction.sourceAccount?.name}
+                  targetAccount={transaction.targetAccount?.name}
+                  onClick={() => onClickTransactionRow(transaction.id)}
+                />
+              ))}
             </React.Fragment>
           );
         })}
       </Stack>
     );
+  };
+
+  const renderRecentTransactionsSection = () => {
+    if (recentTransactionsQuery.loading) {
+      return <ListSkeleton />;
+    }
+    if (recentTransactionsQuery.error) {
+      return (
+        <LoadError
+          title="Couldn't load recent transactions"
+          onRetry={recentTransactionsQuery.retry}
+        />
+      );
+    }
+    return renderRecentTransactions();
   };
 
   return (
@@ -468,23 +443,23 @@ export default function Home() {
       {renderShortcuts()}
       <Group justify="space-between" mb="md" mt="md">
         <Title order={3}>Recent Transactions</Title>
-        <Text
+        <Anchor
+          component={Link}
+          to="/transactions"
           size="sm"
           c="dimmed"
           className={classes.seeAllButton}
-          onClick={() => navigate("/transactions", { replace: false })}
         >
-          See All -&gt;
-        </Text>
+          See All →
+        </Anchor>
       </Group>
-      {isRecentTransactionsLoading
-        ? renderSkeletonRecentTransactions()
-        : renderRecentTransactions()}
+      {renderRecentTransactionsSection()}
       <TransactionModal
-        opened={isTransactionModelOpened}
-        close={() => setIsTransactionModelOpened(false)}
+        opened={isTransactionModalOpened}
+        close={() => setIsTransactionModalOpened(false)}
         loadedRecentTransactions={recentTransactions}
         transactionId={displayedTransactionId}
+        onSaved={onTransactionSaved}
       ></TransactionModal>
     </Container>
   );
