@@ -11,7 +11,11 @@ import {
 } from "@mantine/core";
 import { IconAlertCircle } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
-import { requirePassword, validateTotp } from "../../validation/rules";
+import {
+  requirePassword,
+  TOTP_INPUT_PROPS,
+  validateTotp,
+} from "../../validation/rules";
 
 export function SecureDeleteAccount({
   opened,
@@ -81,7 +85,7 @@ export function SecureDeleteAccount({
               required
               label="2FA Code"
               placeholder="Enter your 6-digit 2FA code"
-              maxLength={6}
+              {...TOTP_INPUT_PROPS}
               {...form.getInputProps("totpCode")}
               size="md"
             />

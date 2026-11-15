@@ -1,14 +1,13 @@
 import {
   Button,
-  Center,
   Container,
   Group,
-  Pagination,
   TextInput,
   Text,
   Select,
 } from "@mantine/core";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { IconSearch } from "@tabler/icons-react";
 import useAxios from "../../utils/useAxios";
 import PageTitle from "../../components/PageTitle";
@@ -23,30 +22,35 @@ import useApiQuery from "../../utils/useApiQuery";
 import { trLocaleFilter } from "../../utils/trLocaleFilter";
 import { validateEntityName } from "../../validation/rules";
 import { TYPE_OPTIONS } from "../../enum/TransactionType";
-import { buildTransactionFilter } from "./transactionFilter";
+import {
+  buildTransactionFilter,
+  EMPTY_FILTER_VALUES,
+  FILTER_PARAM,
+  parseFilterValues,
+  serializeFilterValues,
+} from "./transactionFilter";
 import { idString } from "../../utils/ids";
+import usePagedSearch, { PAGE_PARAM } from "../../utils/usePagedSearch";
+import PagedFooter from "../../components/PagedFooter";
 
 export default function Transactions() {
   const callApi = useAxios();
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [pageNo, setPageNo] = useState(0);
+  // The filter and its page both live in the URL, so a refresh or Back keeps them together
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filterParam = searchParams.get(FILTER_PARAM);
+  const filterValues = parseFilterValues(filterParam);
+  const [isFilterOpen, setIsFilterOpen] = useState(filterValues !== null);
   const [displayedTransactionId, setDisplayedTransactionId] = useState(null);
   const [isTransactionModalOpened, setIsTransactionModalOpened] =
     useState(false);
-  const [currentFilter, setCurrentFilter] = useState(null);
 
-  // The filter and the page are the only triggers, so each change fetches exactly once and a
-  // slow response for an old page or filter is dropped
-  const transactionsQuery = useApiQuery(
-    (signal) =>
-      callApi
-        .post("transaction/search", currentFilter || {}, {
-          params: { pageNo },
-          signal,
-        })
-        .then((response) => response.data),
-    [currentFilter, pageNo]
+  // The filter and the page are the only triggers, so each change fetches once and a slow
+  // response for an old page or filter is dropped. An emptied last page moves back one page.
+  const transactionsQuery = usePagedSearch(
+    "transaction/search",
+    filterValues ? buildTransactionFilter(filterValues) : {}
   );
+  const { pageNo, setPageNo } = transactionsQuery;
   // On failure the account filter stays empty; the rest of the form still works
   const accountsQuery = useApiQuery((signal) =>
     callApi
@@ -55,32 +59,42 @@ export default function Transactions() {
   );
   const isLoading = transactionsQuery.loading;
   const isEnumsLoading = accountsQuery.loading;
-  const transactions = transactionsQuery.data?.content ?? [];
-  const totalPages = transactionsQuery.data?.totalPages ?? 0;
+  const transactions = transactionsQuery.items;
   const accountList = accountsQuery.data ?? [];
   const accountOptions = accountList.map((account) => ({
     value: idString(account.id),
     label: account.name,
   }));
 
-  const handleFilterSubmit = (values) => {
-    setCurrentFilter(buildTransactionFilter(values));
-    setPageNo(0); // Reset pagination on filter submit
-    // An explicit search always reloads, even with an unchanged filter (deps are compared by value).
-    // Batched with the state updates above, so a changed filter still fetches only once.
-    transactionsQuery.retry();
+  /**
+   * Shows the first page for these filter values (null: no filter). A new filter and the page reset
+   * are one URL change, so it fetches once; an unchanged filter still reloads (explicit search).
+   * @param {Record<string, any> | null} values
+   */
+  const applyFilter = (values) => {
+    const nextParam = values ? serializeFilterValues(values) : null;
+    if (nextParam === filterParam) {
+      transactionsQuery.reload();
+      return;
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (nextParam) {
+          next.set(FILTER_PARAM, nextParam);
+        } else {
+          next.delete(FILTER_PARAM);
+        }
+        next.delete(PAGE_PARAM);
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   const form = useForm({
     validateInputOnBlur: true,
-    initialValues: {
-      transactionType: null,
-      payeeName: null,
-      amount: null,
-      date: null,
-      accountId: null,
-      notes: "",
-    },
+    initialValues: filterValues ?? EMPTY_FILTER_VALUES,
 
     validate: {
       payeeName: (val) => (val ? validateEntityName(val) : null),
@@ -89,11 +103,7 @@ export default function Transactions() {
 
   const renderFilter = () => {
     return (
-      <form
-        onSubmit={form.onSubmit((e) => {
-          handleFilterSubmit(e);
-        })}
-      >
+      <form onSubmit={form.onSubmit((values) => applyFilter(values))}>
         <Group>
           <Select
             label="Transaction Type"
@@ -119,7 +129,6 @@ export default function Transactions() {
             placeholder="Transaction Amount"
             form={form}
             fieldName="amount"
-            min={0.01}
             disabled={isLoading}
             size="md"
           ></AmountInput>
@@ -161,9 +170,8 @@ export default function Transactions() {
           <Button
             variant="light"
             onClick={() => {
-              form.reset();
-              setCurrentFilter(null);
-              setPageNo(0);
+              form.setValues(EMPTY_FILTER_VALUES); // not reset(): the initial values may be a filter
+              applyFilter(null);
             }}
             disabled={isLoading}
             size="md"
@@ -212,12 +220,6 @@ export default function Transactions() {
     return renderTransactions();
   };
 
-  const onChangePagination = (value) => {
-    if (value !== pageNo + 1) {
-      setPageNo(value - 1);
-    }
-  };
-
   return (
     <Container size="lg" px={0}>
       <Group justify="space-between" align="flex-start">
@@ -232,17 +234,12 @@ export default function Transactions() {
       </Group>
       {isFilterOpen && renderFilter()}
       {renderContent()}
-      {transactions.length > 0 && (
-        <Center mb="lg" mt="md">
-          <Pagination
-            total={totalPages}
-            value={pageNo + 1}
-            onChange={onChangePagination}
-            withEdges
-            disabled={isLoading}
-          />
-        </Center>
-      )}
+      <PagedFooter
+        totalPages={transactionsQuery.totalPages}
+        pageNo={pageNo}
+        onChange={setPageNo}
+        disabled={isLoading}
+      />
       <LazyTransactionModal
         opened={isTransactionModalOpened}
         close={() => setIsTransactionModalOpened(false)}

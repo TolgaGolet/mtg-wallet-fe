@@ -17,6 +17,7 @@ import {
 import { useForm } from "@mantine/form";
 import {
   requirePassword,
+  TOTP_INPUT_PROPS,
   TOTP_REGEX,
   validateTotp,
   validateUsername,
@@ -64,7 +65,7 @@ const Login = () => {
     setIsLoading(true);
     try {
       await publicApi.post(
-        `${import.meta.env.VITE_RESEND_VERIFY_EMAIL_URL}/${form.values.username}`
+        `${import.meta.env.VITE_RESEND_VERIFY_EMAIL_URL}/${encodeURIComponent(form.values.username)}`
       );
       openSuccessDialog({
         title: "Verification link resent",
@@ -171,9 +172,7 @@ const Login = () => {
                   }}
                   required
                   size="md"
-                  maxLength={6}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
+                  {...TOTP_INPUT_PROPS}
                   autoFocus
                 />
               </>

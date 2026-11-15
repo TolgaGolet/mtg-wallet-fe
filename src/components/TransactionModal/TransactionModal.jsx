@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Center,
   Fieldset,
   FocusTrap,
   Group,
@@ -9,23 +8,20 @@ import {
   LoadingOverlay,
   Modal,
   rem,
-  SegmentedControl,
   Select,
   Text,
   TextInput,
-  useMantineTheme,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
-import { IconCash, IconReceipt, IconTransfer } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAxios from "../../utils/useAxios";
 import { trLocaleFilter } from "../../utils/trLocaleFilter";
 import { accountOptionLabel, categoryLabel } from "../../utils/format";
 import { idString } from "../../utils/ids";
-import { TYPE, TYPE_OPTIONS } from "../../enum/TransactionType";
+import { TYPE, TYPE_LABEL } from "../../enum/TransactionType";
 import { isNotFound } from "../../api/fetchById";
 import AmountInput from "../AmountInput";
 import LoadError from "../LoadError";
@@ -33,6 +29,7 @@ import { notFoundMessage } from "../NotFoundState";
 import showNotification from "../showNotification";
 import openDeleteConfirm from "../openDeleteConfirm";
 import SuggestionBadges from "./SuggestionBadges";
+import TransactionTypeControl from "./TransactionTypeControl";
 import usePayeeSearch from "./usePayeeSearch";
 import useTransactionFormData from "./useTransactionFormData";
 import { findAccount, targetOptions } from "./accountRules";
@@ -41,6 +38,7 @@ import {
   buildTransactionRequest,
   NEW_PAYEE_OPTION_ID,
 } from "./transactionRequest";
+import { validateAmountMax } from "../../validation/rules";
 
 const focusField = (ref) => {
   setTimeout(() => ref?.current?.focus(), 50);
@@ -55,13 +53,6 @@ const toFormValues = (transaction) => ({
   targetAccountId: idString(transaction.targetAccount?.id),
   notes: transaction.notes ?? "",
 });
-
-// The type switch's icon and icon colour per type (labels come from TYPE_OPTIONS)
-const TYPE_ICONS = {
-  [TYPE.EXPENSE]: { Icon: IconReceipt, color: "red" },
-  [TYPE.INCOME]: { Icon: IconCash, color: "green" },
-  [TYPE.TRANSFER]: { Icon: IconTransfer, color: "blue" },
-};
 
 /**
  * Create/edit dialog for a transaction. Parents mount it only while it is open (and load it
@@ -83,7 +74,6 @@ export default function TransactionModal({
 }) {
   const callApi = useAxios();
   const navigate = useNavigate();
-  const theme = useMantineTheme();
   const isEdit = transactionId !== null && transactionId !== undefined;
   const [isSaving, setIsSaving] = useState(false);
   const [typeValue, setTypeValue] = useState(TYPE.EXPENSE);
@@ -107,7 +97,10 @@ export default function TransactionModal({
       notes: "",
     },
     validate: {
-      amount: (val) => (val < 0.01 ? "Amount must be greater than 0.01" : null),
+      amount: (val) =>
+        val < 0.01
+          ? "Amount must be greater than 0.01"
+          : validateAmountMax(val),
       // Rules are read on every render, so typeValue is current
       targetAccountId: (val, values) => {
         if (typeValue !== TYPE.TRANSFER) return null;
@@ -316,31 +309,10 @@ export default function TransactionModal({
       transitionProps={{ transition: "fade", duration: 200 }}
       overlayProps={{ backgroundOpacity: 0.55, blur: 3 }}
     >
-      <SegmentedControl
+      <TransactionTypeControl
         value={typeValue}
         onChange={onChangeType}
-        fullWidth
         disabled={isLoading}
-        aria-label="Transaction type"
-        data={TYPE_OPTIONS.map(({ value, label }) => {
-          const { Icon, color } = TYPE_ICONS[value];
-          return {
-            value,
-            label: (
-              <Center style={{ gap: 10 }}>
-                <Icon
-                  aria-hidden
-                  style={{
-                    width: rem(16),
-                    height: rem(16),
-                    color: theme.colors[color][6],
-                  }}
-                />
-                <span>{label}</span>
-              </Center>
-            ),
-          };
-        })}
       />
       {loadError && (
         <LoadError
@@ -422,11 +394,7 @@ export default function TransactionModal({
                   form.setFieldValue("categoryId", value);
                   if (value) focusField(accountRef);
                 }}
-                nothingFoundMessage={
-                  "Nothing found. Add a new " +
-                  typeValue +
-                  " category from categories page."
-                }
+                nothingFoundMessage={`Nothing found. Add a new ${TYPE_LABEL[typeValue]?.toLowerCase()} category from the categories page.`}
                 required
                 disabled={isLoading || isCategoryDisabled}
               />
@@ -479,7 +447,6 @@ export default function TransactionModal({
                 required={true}
                 form={form}
                 fieldName="amount"
-                min={0.01}
                 mt="md"
                 size="md"
                 disabled={isLoading}

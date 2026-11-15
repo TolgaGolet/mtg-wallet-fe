@@ -21,8 +21,27 @@ beforeEach(() => {
   mockApi.post.mockReset().mockImplementation(() => ok({}));
 });
 
-const renderSettings = () =>
-  renderWithProviders(<Settings />, { auth: { logoutUser: vi.fn() } });
+const renderSettings = (auth = {}) =>
+  renderWithProviders(<Settings />, {
+    auth: { logoutUser: vi.fn(), adoptTokens: vi.fn(), ...auth },
+  });
+
+const ROTATED_TOKENS = {
+  accessToken: "new-access",
+  refreshToken: "new-refresh",
+};
+
+/** The 2FA setup endpoints: a QR code, then the fresh token pair verify-setup answers. */
+const mockTotpSetup = () =>
+  mockApi.post.mockImplementation((url) => {
+    if (url === "auth/totp/setup") {
+      return ok({ qrCodeImage: "iVBORw0KGgo=", secret: "SECRETKEY" });
+    }
+    if (url === "auth/totp/verify-setup") {
+      return ok(ROTATED_TOKENS);
+    }
+    return ok({});
+  });
 
 // Regression (F10): the whole settings object was sent back, so a null surname hit
 // UpdateSettingsRequest's @NotNull and every save answered 400
@@ -68,6 +87,48 @@ test("the 2FA switch has a label", async () => {
   expect(
     await screen.findByRole("switch", {
       name: /two-factor authentication/i,
+    })
+  ).toBeInTheDocument();
+});
+
+// Regression (code quality F1): verify-setup revokes every session and answers new tokens; the
+// page kept the revoked ones, so the next request logged the user out
+test("enabling 2FA keeps the user signed in with the rotated tokens", async () => {
+  mockTotpSetup();
+  const adoptTokens = vi.fn();
+  const { user } = renderSettings({ adoptTokens });
+  await user.click(
+    await screen.findByRole("switch", { name: /two-factor authentication/i })
+  );
+  await user.type(
+    await screen.findByRole("textbox", { name: "Verification Code" }),
+    "123456"
+  );
+  await user.click(
+    screen.getByRole("button", { name: "Verify and Enable 2FA" })
+  );
+
+  await waitFor(() => expect(adoptTokens).toHaveBeenCalledWith(ROTATED_TOKENS));
+  expect(mockApi.post).toHaveBeenCalledWith("auth/totp/verify-setup", {
+    code: "123456",
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("switch", { name: /two-factor authentication/i })
+    ).toBeChecked()
+  );
+});
+
+// The dialog used to have no title, so it had no accessible name
+test("the 2FA dialog has an accessible name", async () => {
+  mockTotpSetup();
+  const { user } = renderSettings();
+  await user.click(
+    await screen.findByRole("switch", { name: /two-factor authentication/i })
+  );
+  expect(
+    await screen.findByRole("dialog", {
+      name: "Set up two-factor authentication",
     })
   ).toBeInTheDocument();
 });
