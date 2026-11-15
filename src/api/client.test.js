@@ -386,3 +386,41 @@ describe("refresh across browser tabs (F4)", () => {
     expect(onAuthFailure).not.toHaveBeenCalled();
   });
 });
+
+describe("sessionUser: requests that must go out under one user's session", () => {
+  test("goes out when the session is that user's", async () => {
+    storeTokens(valid("ada"));
+
+    await api.post("home/currency", {}, { sessionUser: "ada" });
+
+    expect(apiCalls.map(subOf)).toEqual(["ada"]);
+  });
+
+  test.each([
+    ["another user is logged in", () => storeTokens(valid("bob"))],
+    ["nobody is logged in", () => {}],
+  ])("is cancelled, without a toast, when %s", async (_, setUp) => {
+    setUp();
+
+    await expect(
+      api.post("home/currency", {}, { sessionUser: "ada" })
+    ).rejects.toMatchObject({ code: "ERR_CANCELED" });
+
+    expect(apiCalls).toEqual([]);
+    expect(showNotification).not.toHaveBeenCalled();
+  });
+
+  // Regression: the check ran before the request interceptor's refresh, which can adopt tokens of a
+  // different user (another tab logged out and in meanwhile), so the request went out as them
+  test("is checked on the token attached after a refresh", async () => {
+    storeTokens(expired("ada"));
+    refreshSucceeds(); // hands out access-1, i.e. someone other than ada
+
+    await expect(
+      api.post("home/currency", {}, { sessionUser: "ada" })
+    ).rejects.toMatchObject({ code: "ERR_CANCELED" });
+
+    expect(refreshCalls).toBe(1);
+    expect(apiCalls).toEqual([]);
+  });
+});

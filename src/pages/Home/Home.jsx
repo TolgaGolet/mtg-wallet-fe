@@ -4,6 +4,7 @@ import {
   Anchor,
   Card,
   Group,
+  Loader,
   Paper,
   rem,
   Select,
@@ -13,6 +14,7 @@ import {
   Title,
   UnstyledButton,
   useMantineTheme,
+  VisuallyHidden,
   Container,
   Stack,
   Divider,
@@ -43,6 +45,7 @@ import {
   IconReport,
 } from "@tabler/icons-react";
 import classes from "./Home.module.css";
+import { saveHomeCurrency, useHomeCurrencySave } from "./homeCurrencySave";
 
 const INTERVAL_OPTIONS = [
   { value: Interval.DAILY, label: "Daily" },
@@ -64,8 +67,10 @@ export default function Home() {
     getInitialValueInEffect: false,
   });
   const isVisible = !hideBalances;
-  // null until the user picks one: the first currency the backend offers is the default
+  // Picked on this visit; null until the user picks one
   const [pickedCurrency, setPickedCurrency] = useState(null);
+  // A pick from an earlier visit that is still being saved (the loaded enums may predate it)
+  const { pendingCurrency, saving: isSavingCurrency } = useHomeCurrencySave();
   const [selectedInterval, setSelectedInterval] = useState(Interval.DAILY);
   const [isTransactionModalOpened, setIsTransactionModalOpened] =
     useState(false);
@@ -73,12 +78,16 @@ export default function Home() {
 
   // Independent loads, so one failing doesn't block the others
   const currenciesQuery = useApiQuery((signal) =>
-    callApi
-      .get("home/enums", { signal })
-      .then((response) => response.data?.currencies ?? [])
+    callApi.get("home/enums", { signal }).then((response) => response.data)
   );
-  const currencies = currenciesQuery.data ?? [];
-  const selectedCurrency = pickedCurrency ?? currencies[0]?.value ?? null;
+  const currencies = currenciesQuery.data?.currencies ?? [];
+  // Then the account's saved currency (always one of the offered ones), else the first offered
+  const selectedCurrency =
+    pickedCurrency ??
+    pendingCurrency ??
+    currenciesQuery.data?.selectedCurrency?.value ??
+    currencies[0]?.value ??
+    null;
   const currencySymbol = Currency[selectedCurrency]?.symbol;
   const recentTransactionsQuery = useApiQuery((signal) =>
     callApi
@@ -257,9 +266,19 @@ export default function Home() {
             size="xs"
             disabled={currenciesQuery.loading}
             value={selectedCurrency}
-            onChange={(value) => setPickedCurrency(value)}
+            // Shown at once, saved in the background; the Select stays usable (see homeCurrencySave)
+            onChange={(value) => {
+              setPickedCurrency(value);
+              void saveHomeCurrency(callApi, user?.sub, value);
+            }}
+            rightSection={
+              isSavingCurrency ? <Loader size={12} aria-hidden /> : undefined
+            }
             style={{ width: 90 }}
           />
+          <VisuallyHidden role="status">
+            {isSavingCurrency && "Saving currency"}
+          </VisuallyHidden>
         </Group>
 
         <Group align="flex-end" gap="xs" mt={25}>

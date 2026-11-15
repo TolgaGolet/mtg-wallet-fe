@@ -1,12 +1,13 @@
 import { createContext, useState, useEffect, useMemo, useRef } from "react";
-import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import showNotification from "../components/showNotification";
 import { useMantineColorScheme } from "@mantine/core";
 import {
   configureAuth,
+  decodeUser,
   getErrorMessage,
   isTokenExpired,
+  notifySessionChange,
   publicApi,
   readTokens,
 } from "../api/client";
@@ -15,14 +16,6 @@ import { getErrorCode, NOT_VERIFIED_EMAIL } from "../api/errorCodes";
 const AuthContext = createContext();
 const authTokensLocalStorageKey = import.meta.env
   .VITE_AUTH_TOKENS_LOCAL_STORAGE_KEY;
-
-const decodeUser = (tokens) => {
-  try {
-    return tokens?.accessToken ? jwtDecode(tokens.accessToken) : null;
-  } catch {
-    return null;
-  }
-};
 
 /**
  * Holds the session: the tokens (also in localStorage) and the decoded `user`.
@@ -133,6 +126,16 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
+
+  // Module-level state tied to one session (see onSessionChange) is cleared on logout or a user switch
+  const sessionUser = user?.sub;
+  const previousSessionUser = useRef(sessionUser);
+  useEffect(() => {
+    if (previousSessionUser.current !== sessionUser) {
+      previousSessionUser.current = sessionUser;
+      notifySessionChange();
+    }
+  }, [sessionUser]);
 
   // Not memoized: the provider only re-renders when its own auth state changes
   const contextData = {

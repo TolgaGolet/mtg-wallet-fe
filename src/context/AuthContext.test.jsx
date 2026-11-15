@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { act, screen, waitFor } from "@testing-library/react";
 import AuthContext, { AuthProvider } from "./AuthContext";
-import { publicApi } from "../api/client";
+import { onSessionChange, publicApi } from "../api/client";
 import { renderWithProviders } from "../test/renderWithProviders";
 import { fakeJwt } from "../test/jwt";
 import PrivateRoute from "../utils/PrivateRoute";
@@ -94,6 +94,35 @@ describe("session sync across tabs (F4)", () => {
 
     expect(screen.getByTestId("user")).toHaveTextContent("bob");
   });
+});
+
+// Module-level state that belongs to one session (e.g. a Home currency still being saved) is cleared
+test("session-change listeners run on a user switch and on logout, not on a token refresh", async () => {
+  store({ accessToken: fakeJwt("ada"), refreshToken: fakeJwt("r") });
+  vi.spyOn(publicApi, "post").mockResolvedValue({ data: {} });
+  const listener = vi.fn();
+  const unsubscribe = onSessionChange(listener);
+  try {
+    const { user } = renderAuth();
+    expect(listener).not.toHaveBeenCalled();
+
+    changeInOtherTab({
+      accessToken: fakeJwt("ada", 7200),
+      refreshToken: fakeJwt("r2"),
+    });
+    expect(listener).not.toHaveBeenCalled();
+
+    changeInOtherTab({
+      accessToken: fakeJwt("bob"),
+      refreshToken: fakeJwt("r3"),
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "logout" }));
+    await waitFor(() => expect(listener).toHaveBeenCalledTimes(2));
+  } finally {
+    unsubscribe();
+  }
 });
 
 // F14: the backend creates the defaults when the email is verified

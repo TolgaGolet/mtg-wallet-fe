@@ -40,6 +40,15 @@ export function readTokens() {
   }
 }
 
+/** The access token's claims (`sub` is the username), or null when there is none or it can't be decoded. */
+export function decodeUser(tokens) {
+  try {
+    return tokens?.accessToken ? jwtDecode(tokens.accessToken) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function isTokenExpired(token) {
   try {
     return jwtDecode(token).exp * 1000 <= Date.now();
@@ -159,15 +168,45 @@ function serializeDates(data) {
   return serialized;
 }
 
+const sessionChangeListeners = new Set();
+
+/**
+ * Runs `listener` when the logged-in user changes (logout, or another user's login, also from another tab),
+ * for module-level state that belongs to one session. Returns the unsubscribe function.
+ * @param {() => void} listener
+ */
+export function onSessionChange(listener) {
+  sessionChangeListeners.add(listener);
+  return () => sessionChangeListeners.delete(listener);
+}
+
+/** Called by AuthContext whenever its user changes. */
+export function notifySessionChange() {
+  sessionChangeListeners.forEach((listener) => listener());
+}
+
 api.interceptors.request.use(async (config) => {
   config.data = serializeDates(config.data);
   const tokens = readTokens();
   if (!tokens?.accessToken) {
+    if (config.sessionUser) {
+      throw new axios.CanceledError(
+        "Session ended before the request was sent"
+      );
+    }
     return config;
   }
   const accessToken = isTokenExpired(tokens.accessToken)
     ? (await refreshTokens()).accessToken
     : tokens.accessToken;
+  // `{ sessionUser: user.sub }`: the request only goes out under that user's session. Checked on the
+  // token actually attached (after any refresh, which may adopt another tab's newer login).
+  if (
+    config.sessionUser &&
+    decodeUser({ accessToken })?.sub !== config.sessionUser
+  ) {
+    throw new axios.CanceledError("The session changed to another user");
+  }
   config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
