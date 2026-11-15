@@ -1,4 +1,5 @@
 import {
+  AMOUNT_MAX,
   ENTITY_NAME_REGEX,
   EMAIL_REGEX,
   isValidNameKeyword,
@@ -8,6 +9,7 @@ import {
   requirePassword,
   TOTP_REGEX,
   USERNAME_REGEX,
+  validateAmountMax,
   validateEmail,
   validateEntityName,
   validatePassword,
@@ -120,4 +122,12 @@ describe("validators", () => {
     expect(validateTotp("12345")).not.toBeNull();
     expect(validateTotp("")).not.toBeNull();
   });
+});
+
+// Regression: amount inputs clamped a larger stored value on blur and saved it changed, silently
+test("an amount beyond AMOUNT_MAX gets a message instead of being clamped", () => {
+  expect(validateAmountMax(AMOUNT_MAX)).toBeNull();
+  expect(validateAmountMax(-AMOUNT_MAX)).toBeNull();
+  expect(validateAmountMax(null)).toBeNull();
+  expect(validateAmountMax(50_000_000_000_000)).toMatch(/can't be more/);
 });

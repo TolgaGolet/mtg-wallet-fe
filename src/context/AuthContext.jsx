@@ -144,6 +144,8 @@ export const AuthProvider = ({ children }) => {
     loginUser,
     logoutUser,
     signUpUser,
+    // For endpoints that rotate the session (e.g. enabling 2FA revokes the old tokens)
+    adoptTokens: storeTokens,
   };
 
   return (

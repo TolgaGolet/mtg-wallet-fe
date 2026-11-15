@@ -23,9 +23,29 @@ export const PASSWORD_REGEX =
 export const ENTITY_NAME_REGEX = /^[a-zA-Z0-9 \t\n\v\f\rçğıöşüÇĞİÖŞÜ]+$/;
 export const ENTITY_NAME_LENGTH = { min: 3, max: 50 };
 
+/** Input props for every 6-digit authenticator code field: number pad and code autofill on phones. */
+export const TOTP_INPUT_PROPS = {
+  maxLength: 6,
+  inputMode: "numeric",
+  autoComplete: "one-time-code",
+};
+
 export const TOTP_REGEX = /^\d{6}$/;
 
 export const LIMITS = { accounts: 40, categories: 200, payees: 200 };
+
+/**
+ * Largest amount an input accepts. The backend allows 16 integer digits (@Digits(16, 2)), but form
+ * values are JS numbers, which hold only ~15 significant digits exactly, so the UI stops at 13.
+ */
+export const AMOUNT_MAX = 9_999_999_999_999.99;
+
+/** An amount beyond AMOUNT_MAX (e.g. stored by an older client) is reported, never clamped silently. */
+export function validateAmountMax(val) {
+  return typeof val === "number" && Math.abs(val) > AMOUNT_MAX
+    ? "Amount can't be more than 9,999,999,999,999.99"
+    : null;
+}
 
 const between = (val, { min, max }) =>
   typeof val === "string" && val.length >= min && val.length <= max;

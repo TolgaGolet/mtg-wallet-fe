@@ -8,6 +8,15 @@ export function toLocalDateTime(date) {
   return dayjs(date).format("YYYY-MM-DDTHH:mm:ss");
 }
 
+/** getDateGroup's buckets, newest first. */
+export const DATE_GROUP_ORDER = [
+  "Today",
+  "Yesterday",
+  "Last Week",
+  "Last Month",
+  "Older",
+];
+
 /**
  * Home's recent-transaction buckets, by calendar days before today. Calendar-day diff (not ms / 24h),
  * so a daylight-saving change doesn't move "yesterday" into "Today". Future dates count as today.

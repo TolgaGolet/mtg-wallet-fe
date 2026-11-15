@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import AmountInput from "../../components/AmountInput";
 import EntityFormPage from "../../components/entityForm/EntityFormPage";
 import useEntityForm from "../../components/entityForm/useEntityForm";
-import { validateEntityName } from "../../validation/rules";
+import { validateAmountMax, validateEntityName } from "../../validation/rules";
 
 export default function CreateOrEditAccount() {
   const { accountId } = useParams();
@@ -14,7 +14,7 @@ export default function CreateOrEditAccount() {
     listPath: "/accounts",
     afterUpdatePath: `/accounts/${accountId}`,
     initialValues: { name: "", typeValue: "", balance: 0, currencyValue: "" },
-    validate: { name: validateEntityName },
+    validate: { name: validateEntityName, balance: validateAmountMax },
     toFormValues: (account) => ({
       name: account.name ?? "",
       typeValue: account.type?.value ?? "",
