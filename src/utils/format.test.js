@@ -1,4 +1,4 @@
-import { accountOptionLabel, formatAmount } from "./format";
+import { accountOptionLabel, categoryLabel, formatAmount } from "./format";
 
 test("formatAmount uses two decimals and , as the thousands separator", () => {
   expect(formatAmount(1234.5)).toBe("1,234.50");
@@ -16,4 +16,14 @@ test("accountOptionLabel shows a formatted balance and the currency", () => {
       currency: { value: "TRY" },
     })
   ).toBe("Cash (1,234.50 TRY)");
+});
+
+test("categoryLabel adds the parent in brackets", () => {
+  expect(categoryLabel({ name: "Gas", parentCategoryName: "Auto" })).toBe(
+    "Gas (Auto)"
+  );
+  expect(categoryLabel({ name: "Rent", parentCategoryName: null })).toBe(
+    "Rent"
+  );
+  expect(categoryLabel(undefined)).toBe("");
 });

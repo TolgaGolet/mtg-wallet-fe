@@ -42,15 +42,13 @@ const addIfMissing = (list, payee) =>
 
 /**
  * Payee search for the transaction form: debounced, cached per keyword and type, and the
- * previous request is aborted when a new one starts. Only runs while `enabled` (the modal is open).
+ * previous request is aborted when a new one starts. The dialog is mounted only while open, so the
+ * cache starts empty on every opening (a payee created by the last save can't show up as "(New)").
  *
  * `onKeywordChange(keyword, exactMatch)` runs for each debounced keyword, with the existing payee of
  * exactly that name (or null), so the form can lock the category to that payee's category.
  */
-export default function usePayeeSearch(
-  typeValue,
-  { enabled, onKeywordChange }
-) {
+export default function usePayeeSearch(typeValue, { onKeywordChange }) {
   const callApi = useAxios();
   const [payeeList, setPayeeList] = useState([]);
   const [isPayeeLoading, setIsPayeeLoading] = useState(false);
@@ -122,19 +120,9 @@ export default function usePayeeSearch(
     });
   });
 
-  // Fresh results per opening: a payee created by the last save must not show up as "(New)" again.
-  // Declared before the search effect so the cache is cleared before the first search runs.
   useEffect(() => {
-    if (enabled) {
-      cacheRef.current = {};
-    }
-  }, [enabled]);
-
-  useEffect(() => {
-    if (enabled) {
-      search(debouncedKeyword, typeValue);
-    }
-  }, [enabled, debouncedKeyword, typeValue, search]);
+    search(debouncedKeyword, typeValue);
+  }, [debouncedKeyword, typeValue, search]);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 

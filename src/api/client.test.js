@@ -9,23 +9,14 @@ import {
   refreshClient,
 } from "./client";
 import { getErrorCode, NOT_VERIFIED_EMAIL } from "./errorCodes";
+import { fakeJwt } from "../test/jwt";
 
-jest.mock("../components/showNotification", () => jest.fn());
+vi.mock("../components/showNotification", () => ({ default: vi.fn() }));
 
 const TOKENS_KEY = "testAuthTokens";
 
-function jwt(name, expiresInSeconds) {
-  const encode = (obj) =>
-    btoa(JSON.stringify(obj))
-      .replace(/=+$/, "")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
-  const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
-  return `${encode({ alg: "HS256" })}.${encode({ sub: name, exp })}.sig`;
-}
-
-const valid = (name) => jwt(name, 3600);
-const expired = (name) => jwt(name, -60);
+const valid = (name) => fakeJwt(name);
+const expired = (name) => fakeJwt(name, -60);
 
 function storeTokens(accessToken, refreshToken = valid("refresh")) {
   localStorage.setItem(
@@ -63,12 +54,12 @@ let apiCalls;
 let refreshCalls;
 
 beforeEach(() => {
-  process.env.REACT_APP_AUTH_TOKENS_LOCAL_STORAGE_KEY = TOKENS_KEY;
-  process.env.REACT_APP_REFRESH_TOKEN_URL = "auth/refresh-token";
+  vi.stubEnv("VITE_AUTH_TOKENS_LOCAL_STORAGE_KEY", TOKENS_KEY);
+  vi.stubEnv("VITE_REFRESH_TOKEN_URL", "auth/refresh-token");
   localStorage.clear();
   showNotification.mockClear();
-  onAuthFailure = jest.fn();
-  onTokensRefreshed = jest.fn();
+  onAuthFailure = vi.fn();
+  onTokensRefreshed = vi.fn();
   configureAuth({ onAuthFailure, onTokensRefreshed });
   apiCalls = [];
   refreshCalls = 0;
@@ -329,5 +320,107 @@ describe("publicApi (FE-11)", () => {
       "fallback"
     );
     expect(getErrorMessage(new Error("network"))).toBe("Something went wrong");
+  });
+});
+
+describe("refresh across browser tabs (F4)", () => {
+  afterEach(() => {
+    delete navigator.locks;
+  });
+
+  // Another tab held the refresh lock and stored new tokens before this tab got it
+  test("uses the tokens another tab refreshed instead of refreshing again", async () => {
+    refreshSucceeds();
+    storeTokens(expired("access-0"));
+    navigator.locks = {
+      request: async (name, task) => {
+        expect(name).toBe("mtg-wallet-token-refresh");
+        storeTokens(valid("access-other"), valid("refresh-other"));
+        return task();
+      },
+    };
+
+    await api.get("a");
+
+    expect(refreshCalls).toBe(0);
+    expect(subOf(apiCalls[0])).toBe("access-other");
+    expect(onAuthFailure).not.toHaveBeenCalled();
+  });
+
+  // Regression: the losing tab got a 401 (its refresh token was revoked by the other tab's
+  // refresh), logged out, and that logout revoked the other tab's new tokens too
+  test("a refresh rejected because another tab refreshed first keeps the session", async () => {
+    refreshClient.defaults.adapter = async (config) => {
+      refreshCalls += 1;
+      storeTokens(valid("access-other"), valid("refresh-other"));
+      throw httpError(config, 401);
+    };
+    storeTokens(expired("access-0"));
+
+    await api.get("a");
+
+    expect(onAuthFailure).not.toHaveBeenCalled();
+    expect(subOf(apiCalls[0])).toBe("access-other");
+    expect(showNotification).not.toHaveBeenCalled();
+  });
+
+  // Regression: a 401 caused by another tab's rotation (which revoked the token this request sent)
+  // made this tab refresh again with the new tokens, revoking the other tab's fresh ones
+  test("a 401 after another tab rotated the tokens adopts them instead of refreshing", async () => {
+    refreshSucceeds();
+    storeTokens(valid("access-0"), valid("refresh-0"));
+    api.defaults.adapter = async (config) => {
+      apiCalls.push(bearer(config));
+      if (subOf(bearer(config)) === "access-0") {
+        // Another tab refreshed while this request was in flight
+        storeTokens(valid("access-other"), valid("refresh-other"));
+        throw httpError(config, 401);
+      }
+      return ok(config);
+    };
+
+    await api.get("a");
+
+    expect(refreshCalls).toBe(0);
+    expect(apiCalls.map(subOf)).toEqual(["access-0", "access-other"]);
+    expect(onAuthFailure).not.toHaveBeenCalled();
+  });
+});
+
+describe("sessionUser: requests that must go out under one user's session", () => {
+  test("goes out when the session is that user's", async () => {
+    storeTokens(valid("ada"));
+
+    await api.post("home/currency", {}, { sessionUser: "ada" });
+
+    expect(apiCalls.map(subOf)).toEqual(["ada"]);
+  });
+
+  test.each([
+    ["another user is logged in", () => storeTokens(valid("bob"))],
+    ["nobody is logged in", () => {}],
+  ])("is cancelled, without a toast, when %s", async (_, setUp) => {
+    setUp();
+
+    await expect(
+      api.post("home/currency", {}, { sessionUser: "ada" })
+    ).rejects.toMatchObject({ code: "ERR_CANCELED" });
+
+    expect(apiCalls).toEqual([]);
+    expect(showNotification).not.toHaveBeenCalled();
+  });
+
+  // Regression: the check ran before the request interceptor's refresh, which can adopt tokens of a
+  // different user (another tab logged out and in meanwhile), so the request went out as them
+  test("is checked on the token attached after a refresh", async () => {
+    storeTokens(expired("ada"));
+    refreshSucceeds(); // hands out access-1, i.e. someone other than ada
+
+    await expect(
+      api.post("home/currency", {}, { sessionUser: "ada" })
+    ).rejects.toMatchObject({ code: "ERR_CANCELED" });
+
+    expect(refreshCalls).toBe(1);
+    expect(apiCalls).toEqual([]);
   });
 });

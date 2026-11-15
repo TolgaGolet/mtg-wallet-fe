@@ -71,7 +71,7 @@ describe("useApiQuery (FE-10)", () => {
   });
 
   test("onSuccess runs for the current request only", async () => {
-    const onSuccess = jest.fn();
+    const onSuccess = vi.fn();
     const first = deferred();
     let call = 0;
     const { rerender } = renderHook(
@@ -135,5 +135,21 @@ describe("useApiQuery (FE-10)", () => {
     });
     await waitFor(() => expect(result.current.data).toEqual({ a: 2 }));
     expect(fetches).toBe(3);
+  });
+
+  test("stays idle while disabled and loads once enabled", async () => {
+    const fetcher = vi.fn(() => Promise.resolve("data"));
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useApiQuery(fetcher, [], { enabled }),
+      { initialProps: { enabled: false } }
+    );
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.data).toBeUndefined();
+    expect(fetcher).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+    await waitFor(() => expect(result.current.data).toBe("data"));
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
