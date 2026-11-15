@@ -1,5 +1,5 @@
 import axios from "axios";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import showNotification from "../components/showNotification";
 import { toLocalDateTime } from "../utils/dates";
 
@@ -10,17 +10,17 @@ export const NETWORK_ERROR_MESSAGE =
 export const TOO_MANY_REQUESTS_MESSAGE =
   "Too many requests. Try again after a few minutes";
 
-const tokensKey = () => process.env.REACT_APP_AUTH_TOKENS_LOCAL_STORAGE_KEY;
+const tokensKey = () => import.meta.env.VITE_AUTH_TOKENS_LOCAL_STORAGE_KEY;
 
 /** The one client every authenticated call goes through (see useAxios). */
 export const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
 });
 
 /** Interceptor-free client for the refresh call, so a failed refresh can't trigger another refresh. */
 export const refreshClient = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
 });
 
@@ -40,9 +40,18 @@ export function readTokens() {
   }
 }
 
+/** The access token's claims (`sub` is the username), or null when there is none or it can't be decoded. */
+export function decodeUser(tokens) {
+  try {
+    return tokens?.accessToken ? jwtDecode(tokens.accessToken) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function isTokenExpired(token) {
   try {
-    return jwt_decode(token).exp * 1000 <= Date.now();
+    return jwtDecode(token).exp * 1000 <= Date.now();
   } catch {
     return true;
   }
@@ -61,19 +70,54 @@ function authFailure(error) {
   return error;
 }
 
-async function doRefresh() {
-  const refreshToken = readTokens()?.refreshToken;
+// Refresh tokens are single-use: the backend revokes all of a user's tokens on a refresh. Tabs
+// share localStorage but not this module, so two tabs refreshing with the same token would make
+// the second one fail and log both out. The Web Locks API (all evergreen browsers) makes tabs
+// refresh one at a time; without it the refresh just runs.
+const REFRESH_LOCK = "mtg-wallet-token-refresh";
+
+function withRefreshLock(task) {
+  return globalThis.navigator?.locks?.request
+    ? globalThis.navigator.locks.request(REFRESH_LOCK, task)
+    : task();
+}
+
+/** Tokens another tab stored after this tab last read them, if they are still usable. */
+function refreshedElsewhere(staleAccessToken) {
+  const latest = readTokens();
+  return latest?.accessToken &&
+    latest.accessToken !== staleAccessToken &&
+    !isTokenExpired(latest.accessToken)
+    ? latest
+    : null;
+}
+
+async function doRefresh(staleAccessToken) {
+  // Waiting for the lock: another tab may have refreshed in the meantime, so use its tokens
+  const fromOtherTab = refreshedElsewhere(staleAccessToken);
+  if (fromOtherTab) {
+    handlers.onTokensRefreshed(fromOtherTab);
+    return fromOtherTab;
+  }
+  const tokens = readTokens();
+  const refreshToken = tokens?.refreshToken;
   if (isTokenExpired(refreshToken)) {
     throw authFailure(new Error("Refresh token expired"));
   }
   let response;
   try {
     response = await refreshClient.post(
-      process.env.REACT_APP_REFRESH_TOKEN_URL,
+      import.meta.env.VITE_REFRESH_TOKEN_URL,
       {},
       { headers: { Authorization: `Bearer ${refreshToken}` } }
     );
   } catch (error) {
+    // Another tab refreshed while this request was in flight (which revoked the token sent here)
+    const latest = refreshedElsewhere(tokens?.accessToken);
+    if (latest && latest.refreshToken !== refreshToken) {
+      handlers.onTokensRefreshed(latest);
+      return latest;
+    }
     // Network errors, timeouts, 429 and 5xx say nothing about the session, so stay logged in
     throw SESSION_GONE_STATUSES.includes(error.response?.status)
       ? authFailure(error)
@@ -90,11 +134,18 @@ async function doRefresh() {
 
 let refreshing = null;
 
-/** All callers share one in-flight refresh. It is cleared when it settles, so the next expiry refreshes again. */
-export function refreshTokens() {
-  refreshing ??= doRefresh().finally(() => {
-    refreshing = null;
-  });
+/**
+ * All callers share one in-flight refresh. It is cleared when it settles, so the next expiry refreshes again.
+ * `staleAccessToken` is the token that stopped working (by default the stored one): when the stored token
+ * differs, another tab already refreshed, and its tokens are used instead of rotating them again.
+ * @param {string | null | undefined} [staleAccessToken]
+ */
+export function refreshTokens(staleAccessToken = readTokens()?.accessToken) {
+  refreshing ??= withRefreshLock(() => doRefresh(staleAccessToken)).finally(
+    () => {
+      refreshing = null;
+    }
+  );
   return refreshing;
 }
 
@@ -117,15 +168,45 @@ function serializeDates(data) {
   return serialized;
 }
 
+const sessionChangeListeners = new Set();
+
+/**
+ * Runs `listener` when the logged-in user changes (logout, or another user's login, also from another tab),
+ * for module-level state that belongs to one session. Returns the unsubscribe function.
+ * @param {() => void} listener
+ */
+export function onSessionChange(listener) {
+  sessionChangeListeners.add(listener);
+  return () => sessionChangeListeners.delete(listener);
+}
+
+/** Called by AuthContext whenever its user changes. */
+export function notifySessionChange() {
+  sessionChangeListeners.forEach((listener) => listener());
+}
+
 api.interceptors.request.use(async (config) => {
   config.data = serializeDates(config.data);
   const tokens = readTokens();
   if (!tokens?.accessToken) {
+    if (config.sessionUser) {
+      throw new axios.CanceledError(
+        "Session ended before the request was sent"
+      );
+    }
     return config;
   }
   const accessToken = isTokenExpired(tokens.accessToken)
     ? (await refreshTokens()).accessToken
     : tokens.accessToken;
+  // `{ sessionUser: user.sub }`: the request only goes out under that user's session. Checked on the
+  // token actually attached (after any refresh, which may adopt another tab's newer login).
+  if (
+    config.sessionUser &&
+    decodeUser({ accessToken })?.sub !== config.sessionUser
+  ) {
+    throw new axios.CanceledError("The session changed to another user");
+  }
   config.headers.Authorization = `Bearer ${accessToken}`;
   return config;
 });
@@ -164,9 +245,14 @@ api.interceptors.response.use(
     const canRetry = original && !original._retry && !error.isAuthFailure;
     if ((status === 401 || status === 403) && canRetry) {
       original._retry = true;
+      // The token this request sent, not the stored one: if another tab rotated the tokens meanwhile
+      // (which revoked this one), the stored tokens are already new and this tab adopts them
+      const sentAccessToken = String(
+        original.headers?.Authorization ?? ""
+      ).replace(/^Bearer /, "");
       let tokens;
       try {
-        tokens = await refreshTokens();
+        tokens = await refreshTokens(sentAccessToken || undefined);
       } catch (refreshError) {
         notifyError(refreshError);
         throw refreshError;
@@ -185,7 +271,7 @@ api.interceptors.response.use(
  * No token handling, but the same base URL, timeout and error toasts as `api`.
  */
 export const publicApi = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: REQUEST_TIMEOUT_MS,
 });
 

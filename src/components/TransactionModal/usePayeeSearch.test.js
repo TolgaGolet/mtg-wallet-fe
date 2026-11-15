@@ -2,8 +2,10 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import usePayeeSearch, { withNewPayeeOption } from "./usePayeeSearch";
 import { NEW_PAYEE_OPTION_ID } from "./transactionRequest";
 
-const mockPost = jest.fn();
-jest.mock("../../utils/useAxios", () => () => ({ post: mockPost }));
+const mockPost = vi.fn();
+vi.mock("../../utils/useAxios", () => ({
+  default: () => ({ post: mockPost }),
+}));
 
 const PAYEES = {
   EXP: [{ id: 1, name: "Market", categoryId: 10 }],
@@ -40,11 +42,11 @@ describe("withNewPayeeOption", () => {
   });
 });
 
-function renderSearch(initialType = "EXP", enabled = true) {
-  const onKeywordChange = jest.fn();
+function renderSearch(initialType = "EXP") {
+  const onKeywordChange = vi.fn();
   const view = renderHook(
-    ({ type, enabled }) => usePayeeSearch(type, { enabled, onKeywordChange }),
-    { initialProps: { type: initialType, enabled } }
+    ({ type }) => usePayeeSearch(type, { onKeywordChange }),
+    { initialProps: { type: initialType } }
   );
   return { ...view, onKeywordChange };
 }
@@ -66,7 +68,7 @@ describe("usePayeeSearch", () => {
     );
 
     mockPost.mockClear();
-    rerender({ type: "INC", enabled: true });
+    rerender({ type: "INC" });
 
     await waitFor(() =>
       expect(onKeywordChange).toHaveBeenLastCalledWith("Market", PAYEES.INC[0])
@@ -81,11 +83,12 @@ describe("usePayeeSearch", () => {
 
   // Regression: the cache outlived the modal, so a payee created by the last save showed as "(New)"
   test("reopening the modal searches again instead of reusing cached results", async () => {
-    const { rerender } = renderSearch("EXP");
+    // The dialog is mounted only while open, so reopening it mounts the hook again
+    const { unmount } = renderSearch("EXP");
     await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(1));
 
-    rerender({ type: "EXP", enabled: false });
-    rerender({ type: "EXP", enabled: true });
+    unmount();
+    renderSearch("EXP");
 
     await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(2));
   });
