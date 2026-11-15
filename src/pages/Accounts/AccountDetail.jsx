@@ -3,10 +3,8 @@ import {
   ActionIcon,
   Box,
   Card,
-  Center,
   Container,
   Group,
-  Pagination,
   Skeleton,
   Text,
   Title,
@@ -26,17 +24,12 @@ import ListSkeleton from "../../components/ListSkeleton";
 import useApiQuery from "../../utils/useApiQuery";
 import { fetchById, isNotFound } from "../../api/fetchById";
 import LazyTransactionModal from "../../components/TransactionModal/LazyTransactionModal";
+import PagedFooter from "../../components/PagedFooter";
+import usePagedSearch from "../../utils/usePagedSearch";
 
 export default function AccountDetail() {
   const { accountId } = useParams();
   const callApi = useAxios();
-  const [pageNo, setPageNo] = useState(0);
-  // Another account (same component, new route param) starts on its first page
-  const [pagedAccountId, setPagedAccountId] = useState(accountId);
-  if (pagedAccountId !== accountId) {
-    setPagedAccountId(accountId);
-    setPageNo(0);
-  }
   const [isTransactionModalOpened, setIsTransactionModalOpened] =
     useState(false);
   const [displayedTransactionId, setDisplayedTransactionId] = useState(null);
@@ -46,30 +39,14 @@ export default function AccountDetail() {
     (signal) => fetchById(callApi, "account", accountId, signal),
     [accountId]
   );
-  // The backend OR-s source and target, so this lists every transaction touching the account
-  const transactionsQuery = useApiQuery(
-    (signal) =>
-      callApi
-        .post(
-          "transaction/search",
-          { sourceAccountId: accountId, targetAccountId: accountId },
-          { params: { pageNo }, signal }
-        )
-        .then((response) => response.data),
-    [accountId, pageNo],
-    {
-      // A delete can empty the last page: go to the page that is now last instead of showing
-      // "no transactions" with the pagination hidden
-      onSuccess: (page) => {
-        if (pageNo > 0 && !page?.content?.length) {
-          setPageNo(Math.max((page?.totalPages ?? 0) - 1, 0));
-        }
-      },
-    }
-  );
+  // The backend OR-s source and target, so this lists every transaction touching the account.
+  // The page is in the URL, so another account (a new URL) starts on its first page.
+  const transactionsQuery = usePagedSearch("transaction/search", {
+    sourceAccountId: accountId,
+    targetAccountId: accountId,
+  });
   const accountDetails = accountQuery.data;
-  const transactions = transactionsQuery.data?.content ?? [];
-  const totalPages = transactionsQuery.data?.totalPages ?? 0;
+  const transactions = transactionsQuery.items;
 
   // A saved transaction changes the balance and the list, so refresh both
   const onTransactionSaved = () => {
@@ -172,17 +149,12 @@ export default function AccountDetail() {
         Transactions
       </Title>
       {renderTransactions()}
-      {totalPages > 1 && (
-        <Center mb="lg" mt="md">
-          <Pagination
-            total={totalPages}
-            value={pageNo + 1}
-            onChange={(value) => setPageNo(value - 1)}
-            withEdges
-            disabled={transactionsQuery.loading}
-          />
-        </Center>
-      )}
+      <PagedFooter
+        totalPages={transactionsQuery.totalPages}
+        pageNo={transactionsQuery.pageNo}
+        onChange={transactionsQuery.setPageNo}
+        disabled={transactionsQuery.loading}
+      />
       <LazyTransactionModal
         opened={isTransactionModalOpened}
         close={() => setIsTransactionModalOpened(false)}

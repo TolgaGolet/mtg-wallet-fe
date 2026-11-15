@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   Card,
   Text,
@@ -14,6 +14,7 @@ import {
   FocusTrap,
   Center,
 } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import {
   IconCopy,
   IconCheck,
@@ -24,16 +25,34 @@ import useAxios from "../../utils/useAxios";
 import showNotification from "../../components/showNotification";
 import LoadError from "../../components/LoadError";
 import useApiQuery from "../../utils/useApiQuery";
-import { validateTotp } from "../../validation/rules";
+import { TOTP_INPUT_PROPS, validateTotp } from "../../validation/rules";
+import AuthContext from "../../context/AuthContext";
 
-/** `onChange(enabled)` tells the parent the new 2FA state, so it can update without a reload. */
+/** A one-field form for a 6-digit authenticator code, validated as the user types. */
+const useCodeForm = () =>
+  useForm({
+    validateInputOnChange: true,
+    initialValues: { code: "" },
+    validate: { code: validateTotp },
+  });
+
+const codeInputProps = {
+  ...TOTP_INPUT_PROPS,
+  autoFocus: true,
+  size: "md",
+};
+
+/**
+ * The body of the 2FA dialog (Settings gives the dialog its title).
+ * `onChange(enabled)` tells the parent the new 2FA state, so it can update without a reload.
+ */
 export function TotpSetup({ close, twoFactorEnabled, onChange }) {
-  const [verificationCode, setVerificationCode] = useState("");
   const [isDisabling, setIsDisabling] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const callApi = useAxios();
-  const [disableCode, setDisableCode] = useState("");
-  const [validationError, setValidationError] = useState(null);
+  const { adoptTokens } = useContext(AuthContext);
+  const enableForm = useCodeForm();
+  const disableForm = useCodeForm();
   // Only a user without 2FA needs a new secret and QR code
   const setupQuery = useApiQuery(
     (signal) =>
@@ -48,12 +67,16 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
   const loading = setupQuery.loading || isDisabling;
   const loadError = Boolean(setupQuery.error);
 
-  const verifyAndEnableTotp = (e) => {
-    e.preventDefault();
+  const verifyAndEnableTotp = ({ code }) => {
     setVerifying(true);
     callApi
-      .post("auth/totp/verify-setup", { code: verificationCode })
-      .then(() => {
+      .post("auth/totp/verify-setup", { code })
+      .then(({ data }) => {
+        // Enabling 2FA revokes every session, this one too, and answers a fresh token pair:
+        // keep using the old tokens and the next request logs the user out
+        if (data?.accessToken) {
+          adoptTokens(data);
+        }
         setVerifying(false);
         showNotification("2FA has been successfully enabled!", "success");
         close();
@@ -64,11 +87,10 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
       });
   };
 
-  const handleDisable2FA = (e) => {
-    e.preventDefault();
+  const handleDisable2FA = ({ code }) => {
     setIsDisabling(true);
     callApi
-      .post("auth/totp/disable", { code: disableCode })
+      .post("auth/totp/disable", { code })
       .then(() => {
         showNotification("2FA has been successfully disabled!", "success");
         close();
@@ -83,10 +105,6 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
     return (
       <Card shadow="sm" padding="lg" radius="md" withBorder>
         <Stack gap="md">
-          <Text size="lg" fw={500}>
-            Two-Factor Authentication Status
-          </Text>
-
           <Alert
             icon={<IconShieldLock size="1rem" />}
             title="2FA is Currently Enabled"
@@ -97,23 +115,14 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
             verification.
           </Alert>
 
-          <form onSubmit={handleDisable2FA}>
+          <form onSubmit={disableForm.onSubmit(handleDisable2FA)}>
             <Stack gap="md">
               <TextInput
                 label="Current 2FA Code"
                 placeholder="Enter your 6-digit code"
-                value={disableCode}
-                onChange={(event) => {
-                  const value = event.currentTarget.value;
-                  setDisableCode(value);
-                  const error = validateTotp(value);
-                  setValidationError(error);
-                }}
-                maxLength={6}
+                {...disableForm.getInputProps("code")}
+                {...codeInputProps}
                 required
-                autoFocus
-                error={validationError}
-                size="md"
               />
 
               <Group justify="center">
@@ -121,7 +130,7 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
                   type="submit"
                   color="red"
                   loading={loading}
-                  disabled={validationError || disableCode.length !== 6}
+                  disabled={!disableForm.isValid()}
                   size="md"
                 >
                   Verify and Disable 2FA
@@ -137,10 +146,6 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
       <Stack gap="md">
-        <Text size="lg" fw={500}>
-          Two-Factor Authentication Setup
-        </Text>
-
         {loading ? (
           <>
             <Skeleton height={190} mt={10} />
@@ -173,7 +178,7 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
               </div>
             </Card.Section>
             <Center>
-              <form onSubmit={verifyAndEnableTotp}>
+              <form onSubmit={enableForm.onSubmit(verifyAndEnableTotp)}>
                 <FocusTrap active={true}>
                   <Text size="sm">Secret Key:</Text>
                   <Group gap="xs" mt="xs" mb="sm">
@@ -200,26 +205,15 @@ export function TotpSetup({ close, twoFactorEnabled, onChange }) {
                   <TextInput
                     label="Verification Code"
                     placeholder="Enter the 6-digit code"
-                    value={verificationCode}
-                    onChange={(event) => {
-                      const value = event.currentTarget.value;
-                      setVerificationCode(value);
-                      const error = validateTotp(value);
-                      setValidationError(error);
-                    }}
-                    maxLength={6}
-                    autoFocus
-                    error={validationError}
-                    size="md"
+                    {...enableForm.getInputProps("code")}
+                    {...codeInputProps}
                   />
 
                   <Group justify="space-between">
                     <Button
                       type="submit"
                       loading={verifying}
-                      disabled={
-                        validationError || verificationCode.length !== 6
-                      }
+                      disabled={!enableForm.isValid()}
                       style={{ margin: "auto" }}
                       mt="md"
                       size="md"

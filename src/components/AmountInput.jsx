@@ -1,6 +1,7 @@
 // @ts-check
 import { forwardRef } from "react";
 import { NumberInput } from "@mantine/core";
+import { AMOUNT_MAX } from "../validation/rules";
 
 /**
  * @typedef {object} AmountInputOwnProps
@@ -9,15 +10,17 @@ import { NumberInput } from "@mantine/core";
  * @property {string} [label]
  * @property {string} [placeholder]
  * @property {boolean} [required]
- * @property {number | string} [min] defaults to the backend's lowest amount
- * @property {number | string} [max] defaults to the backend's highest amount
  * @typedef {AmountInputOwnProps & Omit<import("@mantine/core").NumberInputProps, keyof AmountInputOwnProps>} AmountInputProps
  */
 
-/** An amount field: 2 decimals, "." as the decimal and "," as the thousands separator. */
+/**
+ * An amount field: 2 decimals, "." as the decimal and "," as the thousands separator. Typing past
+ * AMOUNT_MAX is blocked, but a value is never clamped (on blur Mantine would silently change a larger
+ * stored amount): forms report range errors with their validators (`validateAmountMax`).
+ */
 const AmountInput = forwardRef(function AmountInput(
   /** @type {AmountInputProps} */
-  { label, placeholder, required, form, fieldName, min, max, ...props },
+  { label, placeholder, required, form, fieldName, ...props },
   ref
 ) {
   const inputProps = form.getInputProps(fieldName);
@@ -41,10 +44,10 @@ const AmountInput = forwardRef(function AmountInput(
       thousandSeparator=","
       hideControls
       inputMode="decimal"
-      // ?? and not ||, so min={0} still sets a minimum. The defaults are strings because they have
-      // more digits than a JS number holds (Mantine's types only say number).
-      max={/** @type {number} */ (max ?? "999999999999999.99")}
-      min={/** @type {number} */ (min ?? "-999999999999999.99")}
+      clampBehavior="none"
+      isAllowed={({ floatValue }) =>
+        floatValue === undefined || Math.abs(floatValue) <= AMOUNT_MAX
+      }
       {...props}
     />
   );

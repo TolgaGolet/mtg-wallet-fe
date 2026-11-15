@@ -1,6 +1,7 @@
 import { lazy } from "react";
 import {
   createBrowserRouter,
+  Navigate,
   Route,
   createRoutesFromElements,
   RouterProvider,
@@ -54,94 +55,41 @@ const router = createBrowserRouter(
         </AuthProvider>
       }
     >
-      <Route
-        index
-        element={
-          <PrivateRoute>
-            <Home />
-          </PrivateRoute>
-        }
-      />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<SignUp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password/:token" element={<ResetPassword />} />
-      <Route path="/verify-email/:token" element={<VerifyEmail />} />
-      <Route path="/account-recovery" element={<AccountRecovery />} />
-      <Route path="/recover-account/:token" element={<RecoverAccount />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
+      <Route path="reset-password/:token" element={<ResetPassword />} />
+      <Route path="verify-email/:token" element={<VerifyEmail />} />
+      <Route path="account-recovery" element={<AccountRecovery />} />
+      <Route path="recover-account/:token" element={<RecoverAccount />} />
+      <Route path="help-contact" element={<HelpContact />} />
+      {/* The old path, for bookmarks */}
       <Route
-        path="accounts"
-        element={
-          <PrivateRoute>
-            <Accounts />
-          </PrivateRoute>
-        }
+        path="helpContact"
+        element={<Navigate to="/help-contact" replace />}
       />
-      <Route
-        path="accounts/create-or-edit/:accountId"
-        element={
-          <PrivateRoute>
-            <CreateOrEditAccount />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="accounts/:accountId"
-        element={
-          <PrivateRoute>
-            <AccountDetail />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="payees"
-        element={
-          <PrivateRoute>
-            <Payees />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="payees/create-or-edit/:payeeId"
-        element={
-          <PrivateRoute>
-            <CreateOrEditPayee />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="categories"
-        element={
-          <PrivateRoute>
-            <Categories />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="categories/create-or-edit/:categoryId"
-        element={
-          <PrivateRoute>
-            <CreateOrEditCategory />
-          </PrivateRoute>
-        }
-      />
-      <Route path="helpContact" element={<HelpContact />} />
-      <Route
-        path="transactions"
-        element={
-          <PrivateRoute>
-            <Transactions />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="settings"
-        element={
-          <PrivateRoute>
-            <Settings />
-          </PrivateRoute>
-        }
-      />
+      {/* Everything below needs a logged-in user */}
+      <Route element={<PrivateRoute />}>
+        <Route index element={<Home />} />
+        <Route path="accounts" element={<Accounts />} />
+        <Route
+          path="accounts/create-or-edit/:accountId"
+          element={<CreateOrEditAccount />}
+        />
+        <Route path="accounts/:accountId" element={<AccountDetail />} />
+        <Route path="payees" element={<Payees />} />
+        <Route
+          path="payees/create-or-edit/:payeeId"
+          element={<CreateOrEditPayee />}
+        />
+        <Route path="categories" element={<Categories />} />
+        <Route
+          path="categories/create-or-edit/:categoryId"
+          element={<CreateOrEditCategory />}
+        />
+        <Route path="transactions" element={<Transactions />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Route>
   )

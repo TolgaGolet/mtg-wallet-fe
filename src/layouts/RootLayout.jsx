@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
   AppShell,
   Burger,
@@ -8,6 +8,7 @@ import {
   UnstyledButton,
   useMantineColorScheme,
   useComputedColorScheme,
+  useMantineTheme,
   ActionIcon,
   Button,
 } from "@mantine/core";
@@ -15,22 +16,29 @@ import classes from "./RootLayout.module.css";
 import { IconSun, IconMoon, IconLogout } from "@tabler/icons-react";
 import cx from "clsx";
 import AuthContext from "../context/AuthContext";
-import { Suspense, useContext } from "react";
+import { Suspense, useContext, useEffect } from "react";
 import ListSkeleton from "../components/ListSkeleton";
 
 // One list for the desktop and mobile menus. `private` items need a logged-in user.
 const NAV_ITEMS = [
   { label: "Home", to: "/", end: true },
+  { label: "Transactions", to: "/transactions", private: true },
   { label: "Accounts", to: "/accounts", private: true },
   { label: "Payees", to: "/payees", private: true },
   { label: "Categories", to: "/categories", private: true },
   { label: "Settings", to: "/settings", private: true },
-  { label: "Help & Contact", to: "/helpContact" },
+  { label: "Help & Contact", to: "/help-contact" },
 ];
 
 export default function RootLayout() {
   const { logoutUser, user } = useContext(AuthContext);
   const [opened, { toggle, close }] = useDisclosure();
+  const theme = useMantineTheme();
+  const isDesktop = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`);
+  // The burger menu is mobile-only: widening the window closes it, so it can't stay mounted off-screen
+  useEffect(() => {
+    if (isDesktop) close();
+  }, [isDesktop, close]);
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
@@ -119,45 +127,47 @@ export default function RootLayout() {
           </Group>
         </AppShell.Header>
 
-        <AppShell.Navbar py="md" px={4}>
-          <nav aria-label="Main">
+        {/* Only while open: AppShell.Navbar is a <nav>, so a closed one would be an empty landmark and
+            its links would still be reachable with Tab while off-screen */}
+        {opened && (
+          <AppShell.Navbar py="md" px={4} aria-label="Main">
             {renderNavItems({
               onClick: close,
               mb: mobileButtonMargin,
               ml: mobileButtonMargin,
             })}
-          </nav>
-          <Button
-            onClick={toggleColorScheme}
-            justify="center"
-            fullWidth
-            leftSection={colorSchemeIcon}
-            variant="default"
-            mt="xs"
-          >
-            Toggle Dark / Light Mode
-          </Button>
-          {user ? (
             <Button
-              onClick={() => {
-                logoutUser();
-                close();
-              }}
+              onClick={toggleColorScheme}
               justify="center"
               fullWidth
-              leftSection={
-                <IconLogout
-                  className={cx(classes.icon, classes.light)}
-                  stroke={1.5}
-                />
-              }
+              leftSection={colorSchemeIcon}
               variant="default"
-              mt="md"
+              mt="xs"
             >
-              Logout
+              Toggle Dark / Light Mode
             </Button>
-          ) : null}
-        </AppShell.Navbar>
+            {user ? (
+              <Button
+                onClick={() => {
+                  logoutUser();
+                  close();
+                }}
+                justify="center"
+                fullWidth
+                leftSection={
+                  <IconLogout
+                    className={cx(classes.icon, classes.light)}
+                    stroke={1.5}
+                  />
+                }
+                variant="default"
+                mt="md"
+              >
+                Logout
+              </Button>
+            ) : null}
+          </AppShell.Navbar>
+        )}
 
         <AppShell.Main>
           {/* Most pages are lazy-loaded (App.js); show a skeleton while a page's code downloads */}

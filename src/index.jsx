@@ -5,15 +5,11 @@ import App from "./App";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
-import { MantineProvider, createTheme } from "@mantine/core";
+import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
 import { DatesProvider } from "@mantine/dates";
 import { userTimezone } from "./utils/timezone";
-
-const theme = createTheme({
-  /** Put your mantine theme override here */
-});
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -21,7 +17,7 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 // single-use tokens (TokenActionPage) post them only once
 root.render(
   <StrictMode>
-    <MantineProvider theme={theme} defaultColorScheme="auto">
+    <MantineProvider defaultColorScheme="auto">
       <Notifications />
       <ModalsProvider>
         <DatesProvider

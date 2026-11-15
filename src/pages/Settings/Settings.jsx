@@ -259,7 +259,15 @@ const SettingsPage = () => {
           onDelete={handleDeleteAccount}
           twoFactorEnabled={twoFactorEnabled}
         />
-        <Modal opened={twoFactorModalOpened} onClose={closeTwoFactorModal}>
+        <Modal
+          opened={twoFactorModalOpened}
+          onClose={closeTwoFactorModal}
+          title={
+            twoFactorEnabled
+              ? "Disable two-factor authentication"
+              : "Set up two-factor authentication"
+          }
+        >
           <TotpSetup
             close={closeTwoFactorModal}
             twoFactorEnabled={twoFactorEnabled}

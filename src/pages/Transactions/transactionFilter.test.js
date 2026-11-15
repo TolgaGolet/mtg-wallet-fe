@@ -1,4 +1,9 @@
-import { buildTransactionFilter } from "./transactionFilter";
+import {
+  buildTransactionFilter,
+  EMPTY_FILTER_VALUES,
+  parseFilterValues,
+  serializeFilterValues,
+} from "./transactionFilter";
 
 // Regression (F13): separate "Source" and "Target" selects looked AND-ed, but the backend OR-s them
 test("the account filter matches transactions from or to that account", () => {
@@ -50,4 +55,25 @@ test("only fields TransactionSearchRequest accepts are sent", () => {
     "targetAccountId",
     "typeValue",
   ]);
+});
+
+test("filter values survive the URL round trip, the date included", () => {
+  const date = new Date(2026, 10, 14);
+  const values = { ...EMPTY_FILTER_VALUES, amount: 10, date, notes: "rent" };
+
+  const param = serializeFilterValues(values);
+
+  expect(JSON.parse(param)).toEqual({
+    amount: 10,
+    date: date.toISOString(),
+    notes: "rent",
+  });
+  expect(parseFilterValues(param)).toEqual(values);
+});
+
+test("no filter and an unreadable one both read as no filter", () => {
+  expect(serializeFilterValues(EMPTY_FILTER_VALUES)).toBeNull();
+  expect(parseFilterValues(null)).toBeNull();
+  expect(parseFilterValues("not json")).toBeNull();
+  expect(parseFilterValues("[1]")).toBeNull();
 });

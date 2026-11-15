@@ -1,28 +1,18 @@
 // @ts-check
-import { useState } from "react";
-import {
-  Button,
-  Center,
-  Container,
-  Group,
-  Pagination,
-  Paper,
-  Stack,
-  Text,
-} from "@mantine/core";
+import { Button, Container, Group, Paper, Stack, Text } from "@mantine/core";
 import { IconArrowRight, IconInfoCircle, IconPlus } from "@tabler/icons-react";
 import { Link } from "react-router-dom";
-import useAxios from "../utils/useAxios";
-import useApiQuery from "../utils/useApiQuery";
+import usePagedSearch from "../utils/usePagedSearch";
 import PageTitle from "./PageTitle";
 import LoadError from "./LoadError";
 import ListSkeleton from "./ListSkeleton";
 import ClickableCard from "./ClickableCard";
+import PagedFooter from "./PagedFooter";
 
 /**
  * A paged list page (Accounts, Categories, Payees). By default each card links to the entity's edit
  * form and shows `getSubtitle(item)`; pass `renderItem(item)` to render your own card instead.
- * `basePath` is e.g. "/payees"; the API is `POST <entity>/search` with `pageNo`.
+ * `basePath` is e.g. "/payees"; the API is `POST <entity>/search` with `pageNo` (kept in `?page=`).
  *
  * @param {object} props
  * @param {string} props.title plural page title, e.g. "Payees"
@@ -42,18 +32,18 @@ export default function PagedEntityList({
   getSubtitle,
   renderItem,
 }) {
-  const callApi = useAxios();
-  const [pageNo, setPageNo] = useState(0);
-  const { data, loading, error, retry } = useApiQuery(
-    (signal) =>
-      callApi
-        .post(`${entity}/search`, {}, { params: { pageNo }, signal })
-        .then((response) => response.data),
-    [entity, pageNo]
-  );
-  const items = data?.content ?? [];
+  const {
+    items,
+    totalPages,
+    totalElements,
+    pageNo,
+    setPageNo,
+    loading,
+    error,
+    retry,
+  } = usePagedSearch(`${entity}/search`);
   // totalElements counts everything, not just the current page
-  const isLimitReached = (data?.totalElements ?? 0) >= limit;
+  const isLimitReached = totalElements >= limit;
   const isAddDisabled = loading || isLimitReached;
   const lowerLabel = singularLabel.toLowerCase();
 
@@ -133,17 +123,12 @@ export default function PagedEntityList({
         )}
       </Group>
       {renderContent()}
-      {items.length > 0 && (
-        <Center mb="lg" mt="md">
-          <Pagination
-            total={data?.totalPages ?? 0}
-            value={pageNo + 1}
-            onChange={(value) => setPageNo(value - 1)}
-            withEdges
-            disabled={loading}
-          />
-        </Center>
-      )}
+      <PagedFooter
+        totalPages={totalPages}
+        pageNo={pageNo}
+        onChange={setPageNo}
+        disabled={loading}
+      />
     </Container>
   );
 }
