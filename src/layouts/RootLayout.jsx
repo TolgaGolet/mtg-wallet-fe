@@ -170,7 +170,7 @@ export default function RootLayout() {
         )}
 
         <AppShell.Main>
-          {/* Most pages are lazy-loaded (App.js); show a skeleton while a page's code downloads */}
+          {/* Most pages are lazy-loaded (App.jsx); show a skeleton while a page's code downloads */}
           <Suspense fallback={<ListSkeleton />}>
             <Outlet />
           </Suspense>

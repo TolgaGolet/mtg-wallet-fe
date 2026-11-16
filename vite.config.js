@@ -44,6 +44,18 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     setupFiles: "./src/setupTests.js",
     css: false,
+    // `npm run coverage`; the HTML report lands in coverage/ (gitignored)
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{js,jsx}"],
+      exclude: [
+        "src/**/*.test.{js,jsx}",
+        "src/test/**",
+        "src/setupTests.js",
+        "src/index.jsx",
+      ],
+      reporter: ["text-summary", "text", "html"],
+    },
     env: {
       VITE_API_BASE_URL: "http://localhost/api/",
       VITE_LOGIN_URL: "auth/authenticate",

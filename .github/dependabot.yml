@@ -9,6 +9,12 @@ updates:
       day: "monday"
     open-pull-requests-limit: 5
     groups:
+      # @vitest/coverage-v8 needs the exact vitest version (both pinned), so they always move together.
+      # Listed first: a dependency joins the first group that matches it
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       # Minor and patch bumps arrive as one PR; major versions get their own PR each
       npm-minor-and-patch:
         update-types:

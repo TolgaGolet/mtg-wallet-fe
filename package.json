@@ -12,6 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "coverage": "vitest run --coverage",
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc -p jsconfig.json",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\"",
@@ -42,6 +43,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.3.0",
+    "@vitest/coverage-v8": "5.1.0",
     "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -53,6 +55,6 @@
     "prettier": "3.6.2",
     "typescript": "~5.9.3",
     "vite": "^8.3.8",
-    "vitest": "^5.1.0"
+    "vitest": "5.1.0"
   }
 }

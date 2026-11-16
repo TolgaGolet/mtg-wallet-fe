@@ -1,5 +1,6 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import TransactionModal from "./TransactionModal";
+import showNotification from "../showNotification";
 import {
   ok,
   page,
@@ -14,6 +15,7 @@ const mockApi = vi.hoisted(() => ({
   delete: vi.fn(),
 }));
 vi.mock("../../utils/useAxios", () => ({ default: () => mockApi }));
+vi.mock("../showNotification", () => ({ default: vi.fn() }));
 
 const ACCOUNTS = [
   { id: 1, name: "Cash", balance: 100, currency: { value: "TRY" } },
@@ -48,14 +50,22 @@ beforeEach(() => {
     return page([]); // payee/search
   });
   mockApi.put.mockReset().mockImplementation(() => ok({}));
+  mockApi.delete.mockReset().mockImplementation(() => ok({}));
+  vi.mocked(showNotification).mockReset();
 });
 
 const renderModal = (props = {}) => {
   const close = vi.fn();
+  const onSaved = vi.fn();
   const view = renderWithProviders(
-    <TransactionModal close={close} transactionId={null} {...props} />
+    <TransactionModal
+      close={close}
+      onSaved={onSaved}
+      transactionId={null}
+      {...props}
+    />
   );
-  return { ...view, close };
+  return { ...view, close, onSaved };
 };
 
 const field = (name) => screen.getByRole("textbox", { name });
@@ -182,4 +192,242 @@ test("a deleted transaction shows 'not found'", async () => {
   renderModal({ transactionId: 99 });
   expect(await screen.findByText("Transaction not found")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+describe("saving", () => {
+  /** The request every save of the unchanged TRANSACTION sends. */
+  const EDIT_REQUEST = {
+    typeValue: "EXP",
+    payeeId: 7,
+    payeeName: "Market",
+    categoryId: 10,
+    amount: 12.5,
+    dateTime: new Date("2026-11-01T10:00:00"),
+    sourceAccountId: 1,
+    targetAccountId: null,
+    notes: "milk",
+  };
+
+  const loadEdit = async (props = {}) => {
+    const view = renderModal({ transactionId: 5, ...props });
+    await waitFor(() => expect(field("Payee")).toHaveValue("Market"));
+    return view;
+  };
+
+  test("an edit sends the whole request to update, then closes and tells the parent", async () => {
+    const { user, close, onSaved } = await loadEdit();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(mockApi.put).toHaveBeenCalledWith(
+      "transaction/update/5",
+      EDIT_REQUEST
+    );
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(showNotification).toHaveBeenCalledWith(
+      "Transaction saved",
+      "success"
+    );
+  });
+
+  test("a cleared note is sent as null, which the backend accepts", async () => {
+    const { user, onSaved } = await loadEdit();
+
+    await user.clear(field("Notes"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(mockApi.put).toHaveBeenCalledWith(
+      "transaction/update/5",
+      expect.objectContaining({ notes: null })
+    );
+  });
+
+  test("an amount below 0.01 is reported and nothing is sent", async () => {
+    const { user } = await loadEdit();
+
+    await user.clear(field("Amount"));
+    await user.type(field("Amount"), "0");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(
+      await screen.findByText("Amount must be greater than 0.01")
+    ).toBeInTheDocument();
+    expect(mockApi.put).not.toHaveBeenCalled();
+  });
+
+  test("a rejected save keeps the dialog open with the form usable", async () => {
+    mockApi.put.mockImplementation(() =>
+      Promise.reject({ response: { status: 409 } })
+    );
+    const { user, close, onSaved } = await loadEdit();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save" })).toBeEnabled()
+    );
+    expect(close).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(showNotification).not.toHaveBeenCalled();
+    expect(field("Notes")).toHaveValue("milk");
+  });
+
+  test("an edited transfer sends its target account", async () => {
+    const transfer = {
+      ...TRANSACTION,
+      type: { value: "TRA" },
+      payee: { id: 8, name: "Me", category: { id: 30, name: "Moving money" } },
+      targetAccount: ACCOUNTS[1],
+    };
+    mockApi.get.mockImplementation(() =>
+      ok({
+        accountList: ACCOUNTS,
+        categoryList: [
+          ...CATEGORIES,
+          { id: 30, name: "Moving money", transactionType: { value: "TRA" } },
+        ],
+      })
+    );
+    mockApi.post.mockImplementation((url, body) =>
+      url === "transaction/search" && body?.id ? page([transfer]) : page([])
+    );
+    const { user, onSaved } = renderModal({ transactionId: 5 });
+    await waitFor(() =>
+      expect(field("Target Account")).toHaveValue("Bank (50.00 TRY)")
+    );
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(mockApi.put).toHaveBeenCalledWith(
+      "transaction/update/5",
+      expect.objectContaining({
+        typeValue: "TRA",
+        sourceAccountId: 1,
+        targetAccountId: 2,
+      })
+    );
+  });
+
+  test("delete runs only after confirming, then closes and tells the parent", async () => {
+    const { user, close, onSaved } = await loadEdit();
+
+    await user.click(
+      screen.getByRole("button", { name: "Delete this transaction" })
+    );
+    expect(
+      await screen.findByText(/This action will revert this transaction/)
+    ).toBeInTheDocument();
+    expect(mockApi.delete).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(mockApi.delete).toHaveBeenCalledWith("transaction/delete/5");
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(showNotification).toHaveBeenCalledWith(
+      "Transaction deleted",
+      "success"
+    );
+  });
+
+  test("cancelling the delete confirmation deletes nothing", async () => {
+    const { user, close } = await loadEdit();
+
+    await user.click(
+      screen.getByRole("button", { name: "Delete this transaction" })
+    );
+    const confirmDialog = await screen.findByText(
+      /This action will revert this transaction/
+    );
+    await user.click(
+      within(confirmDialog.closest("section")).getByRole("button", {
+        name: "Cancel",
+      })
+    );
+
+    expect(mockApi.delete).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  // A picked suggestion puts the payee's name in the search box; the exact match locks its category
+  test("a suggested payee and account fill the form, and create sends them", async () => {
+    const { user, close, onSaved } = renderModal({
+      loadedRecentTransactions: [TRANSACTION],
+    });
+    await waitFor(() => expect(field("Payee")).toHaveFocus());
+
+    await user.click(screen.getByRole("button", { name: "Use payee Market" }));
+    await waitFor(() => expect(field("Category")).toHaveValue("Groceries"), {
+      timeout: 2000,
+    });
+    expect(field("Category")).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Use account Cash" }));
+    await waitFor(() => expect(field("Amount")).toHaveFocus());
+    await user.type(field("Amount"), "20");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(mockApi.post).toHaveBeenCalledWith("transaction/create", {
+      ...EDIT_REQUEST,
+      amount: 20,
+      dateTime: expect.any(Date),
+      notes: null,
+    });
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(showNotification).toHaveBeenCalledWith(
+      "Transaction created",
+      "success"
+    );
+  });
+
+  // The backend's TransactionWriteRequest.NEW_PAYEE_ID (-1) means "create a payee from payeeName"
+  test("a new payee is sent as id -1 with its name, without the (New) suffix", async () => {
+    const { user, onSaved } = renderModal();
+    await waitFor(() => expect(field("Payee")).toHaveFocus());
+
+    await user.type(field("Payee"), "Bakery");
+    await user.click(
+      await screen.findByRole(
+        "option",
+        { name: "Bakery (New)" },
+        { timeout: 2000 }
+      )
+    );
+    await waitFor(() => expect(field("Category")).toHaveFocus());
+    await pickOption(user, "Category", "Groceries");
+    await waitFor(() => expect(field("Account")).toHaveFocus());
+    await pickOption(user, "Account", "Cash (100.00 TRY)");
+    await waitFor(() => expect(field("Amount")).toHaveFocus());
+    await user.type(field("Amount"), "3");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(mockApi.post).toHaveBeenCalledWith(
+      "transaction/create",
+      expect.objectContaining({
+        payeeId: -1,
+        payeeName: "Bakery",
+        categoryId: 10,
+        amount: 3,
+        sourceAccountId: 1,
+      })
+    );
+  });
+
+  test("All fills in the selected account's whole balance", async () => {
+    // The suggestion badge picks the account without a dropdown, which a late re-render can close
+    const { user } = renderModal({ loadedRecentTransactions: [TRANSACTION] });
+    await waitFor(() => expect(field("Payee")).toHaveFocus());
+    await user.click(screen.getByRole("button", { name: "Use account Cash" }));
+    await waitFor(() => expect(field("Amount")).toHaveFocus());
+
+    await user.click(
+      screen.getByRole("button", { name: "Use the whole account balance" })
+    );
+
+    expect(field("Amount")).toHaveValue("100.00");
+  });
 });
