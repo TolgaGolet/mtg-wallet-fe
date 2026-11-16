@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import useAxios from "./useAxios";
 import useApiQuery from "./useApiQuery";
+import useStableCallback from "./useStableCallback";
 
 export const PAGE_PARAM = "page";
 
@@ -31,21 +32,23 @@ export default function usePagedSearch(path, body = {}) {
   const isNewBody = pageBodyKey !== bodyKey;
   const pageNo = isNewBody ? 0 : urlPageNo;
 
-  /** @param {number} nextPageNo 0-based */
-  const setPageNo = (nextPageNo) =>
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (nextPageNo > 0) {
-          next.set(PAGE_PARAM, String(nextPageNo + 1));
-        } else {
-          next.delete(PAGE_PARAM);
-        }
-        return next;
-      },
-      // Paging isn't a new place in history: Back leaves the list
-      { replace: true }
-    );
+  // Stable, so the effect below can list it without re-running on every render
+  const setPageNo = useStableCallback(
+    (/** @type {number} 0-based */ nextPageNo) =>
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (nextPageNo > 0) {
+            next.set(PAGE_PARAM, String(nextPageNo + 1));
+          } else {
+            next.delete(PAGE_PARAM);
+          }
+          return next;
+        },
+        // Paging isn't a new place in history: Back leaves the list
+        { replace: true }
+      )
+  );
 
   useEffect(() => {
     if (!isNewBody) return;
@@ -54,7 +57,7 @@ export default function usePagedSearch(path, body = {}) {
     } else {
       setPageBodyKey(bodyKey);
     }
-  }, [isNewBody, urlPageNo, bodyKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isNewBody, urlPageNo, bodyKey, setPageNo]);
 
   const query = useApiQuery(
     (signal) =>

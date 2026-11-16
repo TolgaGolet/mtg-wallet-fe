@@ -10,6 +10,10 @@ import { Notifications } from "@mantine/notifications";
 import { ModalsProvider } from "@mantine/modals";
 import { DatesProvider } from "@mantine/dates";
 import { userTimezone } from "./utils/timezone";
+import { markChunkLoadErrors } from "./utils/chunkLoadError";
+
+// Before the first lazy page loads, so a deploy that removed its files shows RouteError's reload prompt
+markChunkLoadErrors();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
