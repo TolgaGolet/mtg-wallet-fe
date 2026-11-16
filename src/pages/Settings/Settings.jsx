@@ -208,7 +208,13 @@ const SettingsPage = () => {
           <Button onClick={openPasswordModal} size="md">
             Change Password
           </Button>
-          <Button color="red" onClick={openDeleteModal} size="md">
+          {/* The dialog asks for a 2FA code only once settings say whether 2FA is on */}
+          <Button
+            color="red"
+            onClick={openDeleteModal}
+            disabled={isLoading || loadError}
+            size="md"
+          >
             Delete Account
           </Button>
         </Stack>

@@ -1,10 +1,6 @@
 import { Button, Container, Group, Text, Title } from "@mantine/core";
 import { useRouteError } from "react-router-dom";
-
-// A lazy page whose file no longer exists (the app was redeployed while this tab was open)
-const isChunkLoadError = (error) =>
-  error?.name === "ChunkLoadError" ||
-  /Loading( CSS)? chunk [\w-]+ failed/i.test(error?.message ?? "");
+import { isChunkLoadError } from "../utils/chunkLoadError";
 
 /**
  * Shown by the router when a page throws while rendering or fails to load. It replaces the whole
@@ -12,6 +8,7 @@ const isChunkLoadError = (error) =>
  */
 export default function RouteError() {
   const error = useRouteError();
+  // A lazy page whose file no longer exists (the app was redeployed while this tab was open)
   const isNewVersion = isChunkLoadError(error);
 
   return (
